@@ -2,38 +2,31 @@
    Canvas Playground — style.css
    ============================ */
 
-/* ---- Theme tokens ---- */
 :root {
-  /* พื้นหลัง: ฟ้ากลาง → เขียวปลาย */
-  --bg-blue:  #7ad3ff;
-  --bg-green: #d2f27a;
-
-  /* เงาทั่วไป */
+  --bg-blue:  #7ad3ff;   /* ฟ้ากลาง */
+  --bg-green: #d2f27a;   /* เขียวปลาย */
   --shadow-md: 0 10px 25px rgba(0,0,0,.16);
   --shadow-lg: 0 20px 50px rgba(0,0,0,.18);
 }
 
-/* ---- Base ---- */
 * { box-sizing: border-box; }
 html, body {
   height: 100%;
   margin: 0;
   font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-  background: #000;          /* กัน flash ขาวตอนโหลด */
-  overflow: hidden;          /* ให้ canvas คุมสกรอลล์เอง */
+  background: #000;
+  overflow: hidden;      /* ให้ canvas คุมสกรอลล์เอง */
 }
 
-/* ---- Canvas (เต็มจอ) ---- */
+/* เต็มจอ + ปิด gesture เดิมของเบราเซอร์บนมือถือ */
 #canvas {
   position: fixed;
   inset: 0;
   overflow: hidden;
-  /* ฟ้าตรงกลาง เขียวรอบนอก */
   background: radial-gradient(65% 65% at 50% 50%, var(--bg-blue) 0%, var(--bg-green) 100%);
-  touch-action: none;        /* เราคุม gesture เองใน JS */
+  touch-action: none;    /* สำคัญมากสำหรับ Pointer Events */
 }
 
-/* ---- Stage (ตัวที่ถูก pan/zoom) ---- */
 #stage {
   position: absolute;
   inset: 0;
@@ -41,23 +34,23 @@ html, body {
   will-change: transform;
 }
 
-/* ---- Draggable elements ---- */
+/* elements */
 .draggable {
   position: absolute;
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: auto;
   filter: drop-shadow(0 8px 20px rgba(0,0,0,.2));
-  will-change: left, top, width, transform, opacity;
   transition: box-shadow .15s ease;
   cursor: grab;
+  touch-action: none;
 }
 .draggable:active {
   cursor: grabbing;
   filter: drop-shadow(0 14px 30px rgba(0,0,0,.26));
 }
 
-/* Hover bounce (เฉพาะอุปกรณ์ที่รองรับ hover) */
+/* Hover bounce (จะทำงานเฉพาะเครื่องที่มี hover เช่น เมาส์) */
 @media (hover:hover) {
   .draggable:hover { animation: hoverBounce .55s ease; }
 }
@@ -76,34 +69,42 @@ html, body {
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ---- Selection frame (เหลี่ยมแบบ Photoshop) ---- */
+/* Selection box: เหลี่ยมสไตล์ Photoshop */
 .selection {
   position: absolute;
-  border: 2px dashed #111;   /* เส้นประดำ */
-  border-radius: 0;          /* เหลี่ยม */
+  border: 2px dashed #111;
+  border-radius: 0;
   background: transparent;
   box-shadow: none;
-  pointer-events: none;      /* ไม่ขวาง mouse ของ element ข้างใน */
+  pointer-events: none;
   z-index: 5;
 }
 
-/* Handles สี่เหลี่ยม */
+/* Handles */
 .handle {
   position: absolute;
   width: 12px; height: 12px;
   background: #fff;
   border: 1px solid #111;
   border-radius: 2px;
-  box-shadow: none;
   pointer-events: auto;
   touch-action: none;
 }
-.handle.nw { left:  -8px; top:   -8px; }
-.handle.ne { right: -8px; top:   -8px; }
-.handle.sw { left:  -8px; bottom:-8px; }
-.handle.se { right: -8px; bottom:-8px; }
+.handle.nw { left:-8px;  top:-8px; }
+.handle.ne { right:-8px; top:-8px; }
+.handle.sw { left:-8px;  bottom:-8px; }
+.handle.se { right:-8px; bottom:-8px; }
 
-/* ---- Hint pill (ด้านล่างกึ่งกลาง) ---- */
+/* Touch targets ใหญ่ขึ้นบนมือถือ */
+@media (max-width: 640px) {
+  .handle { width: 18px; height: 18px; }
+  .handle.nw { left:-10px;  top:-10px; }
+  .handle.ne { right:-10px; top:-10px; }
+  .handle.sw { left:-10px;  bottom:-10px; }
+  .handle.se { right:-10px; bottom:-10px; }
+}
+
+/* Hint pill */
 #hint {
   position: fixed;
   left: 50%;
@@ -116,18 +117,16 @@ html, body {
   border-radius: 12px;
   font-size: 16px;
   font-weight: 700;
-  color: #000;               /* ตามที่ขอ */
+  color: #000;
   opacity: .9;
   box-shadow: 0 4px 20px rgba(0,0,0,.12);
-  z-index: 10;               /* ให้ลอยเหนือ stage แน่ๆ */
+  z-index: 10;
 }
 @keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
-
-/* ---- Responsive tweaks ---- */
 @media (max-width: 640px) {
   #hint {
     font-size: 14px;
