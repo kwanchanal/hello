@@ -1,13 +1,10 @@
 // =====================================================
-// Canvas Playground — Clean build
-// - Drag + Resize (handles)
-// - Desktop: persist x/y/w/h in localStorage
-// - Mobile: random layout every load (no persist)
-// - Pan background + Wheel zoom (desktop)
-// - Pinch zoom (touch)
-// - Hover bounce + grab/grabbing cursor
-// - Stage กึ่งกลางด้วย CSS (ไม่ต้องคำนวณศูนย์กลางใน JS อีก)
-// - ยกเลิก entrance animation ของชิ้นที่ถูกลากทันที ✅
+// Canvas Playground (center-by-content)
+// - Drag + Resize
+// - Desktop persist (localStorage), Mobile random each load
+// - Pan + Wheel zoom (desktop) / Pinch zoom (touch)
+// - Entrance animation อยู่ใน index.html
+// - จัดกึ่งกลางด้วย JS: centerStageOnContent() ✅
 // =====================================================
 
 const canvas = document.getElementById('canvas');
@@ -15,12 +12,12 @@ const stage  = document.getElementById('stage');
 
 const IMAGE_COUNT = 23;
 const IS_MOBILE = window.matchMedia('(max-width: 640px)').matches;
-const PERSIST_KEY = 'hello-layout-v3';     // desktop only
-const PERSIST_ON_MOBILE = false;           // keep mobile random every load
+const PERSIST_KEY = 'hello-layout-v3';
+const PERSIST_ON_MOBILE = false;
 const WHEEL_ZOOM_STEP = 0.001;
 const SCALE_MIN = 0.3, SCALE_MAX = 3;
 
-// ---------- Desktop layout (23 items) ----------
+// Desktop layout (fixed)
 const desktopLayout = {
   "frame-1":  { "x": 646.51,  "y": -281.271, "w": 300 },
   "frame-2":  { "x": 75.6457, "y": -184.501, "w": 300 },
@@ -47,7 +44,7 @@ const desktopLayout = {
   "frame-23": { "x": -579.162,"y": 699.192,  "w": 300 }
 };
 
-// ---------- Mobile random layout ----------
+// Mobile random (each load)
 function computeMobileLayoutRandom() {
   const ids = Array.from({ length: IMAGE_COUNT }, (_, i) => `frame-${i + 1}`);
   const layout = {};
@@ -57,7 +54,7 @@ function computeMobileLayoutRandom() {
   return layout;
 }
 
-// ---------- Persistence ----------
+// Persist
 function loadSavedLayout() {
   if (IS_MOBILE && !PERSIST_ON_MOBILE) return {};
   try { return JSON.parse(localStorage.getItem(PERSIST_KEY) || '{}'); }
@@ -78,8 +75,9 @@ function saveLayoutNow() {
 }
 const saveLayout = (()=>{let t=null;return()=>{clearTimeout(t);t=setTimeout(saveLayoutNow,120);};})();
 
-// ---------- Build DOM ----------
+// Build DOM
 const els = [];
+const loadPromises = [];
 for (let i = 1; i <= IMAGE_COUNT; i++) {
   const el = document.createElement('img');
   el.src = `elements/frame-${i}.png`;
@@ -89,12 +87,16 @@ for (let i = 1; i <= IMAGE_COUNT; i++) {
   el.addEventListener('dragstart', e => e.preventDefault());
   stage.appendChild(el);
   els.push(el);
+  loadPromises.push(new Promise(res => {
+    if (el.complete) return res();
+    el.onload = () => res();
+    el.onerror = () => res();
+  }));
 }
 
-// choose initial layout & apply
 const saved = loadSavedLayout();
-const initialLayout = (Object.keys(saved).length ? saved : (IS_MOBILE ? computeMobileLayoutRandom() : desktopLayout));
-applyLayout(initialLayout);
+const initialLayout =
+  (Object.keys(saved).length ? saved : (IS_MOBILE ? computeMobileLayoutRandom() : desktopLayout));
 
 function applyLayout(layout) {
   els.forEach(el => {
@@ -106,8 +108,9 @@ function applyLayout(layout) {
     if (lay.h) el.style.height = lay.h + 'px'; else el.style.removeProperty('height');
   });
 }
+applyLayout(initialLayout);
 
-// ---------- Pan & Zoom ----------
+// Pan & Zoom (transform from top-left origin)
 let scale = IS_MOBILE ? 0.6 : 0.5;
 let originX = 0, originY = 0;
 function applyTransform() {
@@ -115,12 +118,39 @@ function applyTransform() {
 }
 applyTransform();
 
-// wheel zoom (desktop)
+// ✅ Center stage so content center == viewport center
+function centerStageOnContent() {
+  if (!els.length) return;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  els.forEach(el => {
+    const l = el.offsetLeft, t = el.offsetTop, w = el.offsetWidth, h = el.offsetHeight;
+    minX = Math.min(minX, l);
+    minY = Math.min(minY, t);
+    maxX = Math.max(maxX, l + w);
+    maxY = Math.max(maxY, t + h);
+  });
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const viewW = canvas.clientWidth;
+  const viewH = canvas.clientHeight;
+  originX = (viewW / 2) - (cx * scale);
+  originY = (viewH / 2) - (cy * scale);
+  applyTransform();
+}
+
+// หลังรูปโหลดเสร็จ ค่อยจัดกลาง (กันกระพริบ) แล้ว seed persist ครั้งแรกบน desktop
+Promise.all(loadPromises).then(() => {
+  centerStageOnContent();
+  if (!IS_MOBILE && !Object.keys(saved).length) saveLayoutNow();
+});
+
+// Wheel zoom
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   const prev = scale;
   const delta = -e.deltaY * WHEEL_ZOOM_STEP;
   scale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, scale + delta));
+
   const r = stage.getBoundingClientRect();
   const mx = (e.clientX - r.left) / prev;
   const my = (e.clientY - r.top ) / prev;
@@ -129,7 +159,7 @@ canvas.addEventListener('wheel', (e) => {
   applyTransform();
 }, {passive:false});
 
-// pinch zoom (touch)
+// Pinch zoom (touch)
 const pointerMap = new Map();
 function pinchInfo(){
   const pts = [...pointerMap.values()];
@@ -155,7 +185,7 @@ canvas.addEventListener('pointerdown', e => pointerMap.set(e.pointerId, {x:e.cli
   window.addEventListener(ev, e => { pointerMap.delete(e.pointerId); if (pointerMap.size < 2) pinchState = null; });
 });
 
-// ---------- Selection + Drag + Resize ----------
+// Selection + Drag + Resize
 let selection=null,resizing=null;
 function showSelection(el){
   hideSelection();
@@ -189,8 +219,7 @@ function stageLocalXY(clientX, clientY){
 stage.addEventListener('pointerdown', e => {
   const el = e.target.closest('img.draggable');
   if (!el) { hideSelection(); return; }
-
-  // ✅ ยกเลิก entrance animation ของ element นี้ทันทีเพื่อกันทับ transform
+  // ถ้า element นั้นยังมี entrance animation อยู่ → ยกเลิก
   el.getAnimations?.().forEach(a => a.cancel());
 
   active = el;
@@ -207,6 +236,7 @@ stage.addEventListener('pointermove', e => {
   active.style.left = pos.x + 'px';
   active.style.top  = pos.y + 'px';
   updateSelection(active);
+  saveLayout();
 });
 stage.addEventListener('pointerup', e => {
   if (resizing){ endResize(); return; }
@@ -216,7 +246,8 @@ stage.addEventListener('pointerup', e => {
   active = null;
 });
 
-function startResize(e, el, pos){
+// Resize
+function startResize(e,el,pos){
   e.stopPropagation(); e.preventDefault();
   const r=el.getBoundingClientRect(), s=stage.getBoundingClientRect();
   resizing={el,pos,startX:e.clientX,startY:e.clientY,startW:r.width,startH:r.height,startL:(r.left-s.left)/scale,startT:(r.top-s.top)/scale};
@@ -226,12 +257,13 @@ function onResizeMove(e){
   const {el,pos,startX,startY,startW,startH,startL,startT}=resizing;
   let dx=(e.clientX-startX)/scale, dy=(e.clientY-startY)/scale;
   let newW=startW,newH=startH,newL=startL,newT=startT;
-  if(pos.includes("e")) newW=startW+dx;
-  if(pos.includes("s")) newH=startH+dy;
-  if(pos.includes("w")){ newW=startW-dx; newL=startL+dx; }
-  if(pos.includes("n")){ newH=startH-dy; newT=startT+dy; }
+  if(pos.includes('e')) newW=startW+dx;
+  if(pos.includes('s')) newH=startH+dy;
+  if(pos.includes('w')){ newW=startW-dx; newL=startL+dx; }
+  if(pos.includes('n')){ newH=startH-dy; newT=startT+dy; }
   newW=Math.max(40,newW); newH=Math.max(40,newH);
   el.style.left=newL+'px'; el.style.top=newT+'px'; el.style.width=newW+'px'; el.style.height=newH+'px';
   updateSelection(el);
+  saveLayout();
 }
 function endResize(){ saveLayoutNow(); resizing=null; }
