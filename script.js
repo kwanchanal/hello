@@ -1,12 +1,25 @@
-/* script.js — clean drag+resize+persist desktop, random mobile, pan+zoom/pinch */
+// =====================================================
+// Canvas Playground — Clean build
+// - Drag + Resize (handles)
+// - Desktop: persist x/y/w/h in localStorage
+// - Mobile: random layout every load (no persist)
+// - Pan background + Wheel zoom (desktop)
+// - Pinch zoom (touch)
+// - Hover bounce + grab/grabbing cursor
+// - Center on content at startup  ✅
+// =====================================================
 
-const canvas = document.getElementById("canvas");
-const stage  = document.getElementById("stage");
+const canvas = document.getElementById('canvas');
+const stage  = document.getElementById('stage');
 
 const IMAGE_COUNT = 23;
-const IS_MOBILE = window.matchMedia("(max-width: 640px)").matches;
-const PERSIST_KEY = "hello-layout-v4";
+const IS_MOBILE = window.matchMedia('(max-width: 640px)').matches;
+const PERSIST_KEY = 'hello-layout-v3';     // desktop only
+const PERSIST_ON_MOBILE = false;           // keep mobile random every load
+const WHEEL_ZOOM_STEP = 0.001;
+const SCALE_MIN = 0.3, SCALE_MAX = 3;
 
+// ---------- Desktop layout (23 items) ----------
 const desktopLayout = {
   "frame-1":  { "x": 646.51,  "y": -281.271, "w": 300 },
   "frame-2":  { "x": 75.6457, "y": -184.501, "w": 300 },
@@ -33,111 +46,153 @@ const desktopLayout = {
   "frame-23": { "x": -579.162,"y": 699.192,  "w": 300 }
 };
 
-// ---------- Mobile random ----------
+// ---------- Mobile random layout ----------
 function computeMobileLayoutRandom() {
-  const ids = Array.from({length:IMAGE_COUNT},(_,i)=>`frame-${i+1}`);
-  const layout={};
-  ids.forEach(id=>{
-    layout[id]={x:Math.random()*800,y:Math.random()*600,w:210+Math.random()*90};
+  const ids = Array.from({ length: IMAGE_COUNT }, (_, i) => `frame-${i + 1}`);
+  const layout = {};
+  ids.forEach(id => {
+    layout[id] = { x: Math.random()*800, y: Math.random()*650, w: 210 + Math.random()*90 };
   });
   return layout;
 }
 
 // ---------- Persistence ----------
-function loadSaved(){
-  try{ return JSON.parse(localStorage.getItem(PERSIST_KEY)||"{}"); }catch{return {};}
+function loadSavedLayout() {
+  if (IS_MOBILE && !PERSIST_ON_MOBILE) return {};
+  try { return JSON.parse(localStorage.getItem(PERSIST_KEY) || '{}'); }
+  catch { return {}; }
 }
-function saveAll(){
-  if(IS_MOBILE) return; // mobile ไม่ persist
-  const obj={};
-  stage.querySelectorAll(".draggable").forEach(el=>{
-    obj[el.dataset.id]={
-      x:parseFloat(el.style.left)||0,
-      y:parseFloat(el.style.top)||0,
-      w:parseFloat(el.style.width)||0,
-      h:parseFloat(el.style.height)||0
+function saveLayoutNow() {
+  if (IS_MOBILE && !PERSIST_ON_MOBILE) return;
+  const obj = {};
+  stage.querySelectorAll('.draggable').forEach(el => {
+    obj[el.dataset.id] = {
+      x: parseFloat(el.style.left) || 0,
+      y: parseFloat(el.style.top)  || 0,
+      w: parseFloat(el.style.width) || 0,
+      h: parseFloat(el.style.height) || 0
     };
   });
-  localStorage.setItem(PERSIST_KEY,JSON.stringify(obj));
+  try { localStorage.setItem(PERSIST_KEY, JSON.stringify(obj)); } catch {}
 }
+const saveLayout = (()=>{let t=null;return()=>{clearTimeout(t);t=setTimeout(saveLayoutNow,120);};})();
 
-// ---------- Initial Layout ----------
-const saved = loadSaved();
-const initialLayout = (IS_MOBILE? computeMobileLayoutRandom(): (Object.keys(saved).length?saved:desktopLayout));
-
-const els=[];
-for(let i=1;i<=IMAGE_COUNT;i++){
-  const el=document.createElement("img");
-  el.src=`elements/frame-${i}.png`;
-  el.className="draggable hover-bounce";
-  el.dataset.id=`frame-${i}`;
+// ---------- Build DOM ----------
+const els = [];
+const loadPromises = [];
+for (let i = 1; i <= IMAGE_COUNT; i++) {
+  const el = document.createElement('img');
+  el.src = `elements/frame-${i}.png`;
+  el.className = 'draggable hover-bounce';
+  el.dataset.id = `frame-${i}`;
+  el.draggable = false;
+  el.addEventListener('dragstart', e => e.preventDefault());
   stage.appendChild(el);
   els.push(el);
+  loadPromises.push(new Promise(res => {
+    if (el.complete) return res();
+    el.onload = () => res();
+    el.onerror = () => res();
+  }));
 }
+
+// choose initial layout & apply
+const saved = loadSavedLayout();
+const initialLayout = (Object.keys(saved).length ? saved : (IS_MOBILE ? computeMobileLayoutRandom() : desktopLayout));
 applyLayout(initialLayout);
 
-function applyLayout(layout){
-  els.forEach(el=>{
-    const lay=layout[el.dataset.id];
-    if(!lay) return;
-    el.style.left=lay.x+"px";
-    el.style.top =lay.y+"px";
-    el.style.width=lay.w+"px";
-    if(lay.h) el.style.height=lay.h+"px";
+function applyLayout(layout) {
+  els.forEach(el => {
+    const lay = layout[el.dataset.id];
+    if (!lay) return;
+    el.style.left  = lay.x + 'px';
+    el.style.top   = lay.y + 'px';
+    el.style.width = lay.w + 'px';
+    if (lay.h) el.style.height = lay.h + 'px'; else el.style.removeProperty('height');
   });
 }
 
 // ---------- Pan & Zoom ----------
-let scale=IS_MOBILE?0.6:0.5, originX=0, originY=0;
-function applyTransform(){ stage.style.transform=`translate(${originX}px,${originY}px) scale(${scale})`; }
+let scale = IS_MOBILE ? 0.6 : 0.5;
+let originX = 0, originY = 0;
+function applyTransform() {
+  stage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+}
 applyTransform();
 
-canvas.addEventListener("wheel",e=>{
-  e.preventDefault();
-  const prev=scale, delta=-e.deltaY*0.001;
-  scale=Math.min(3,Math.max(0.3,scale+delta));
-  const r=stage.getBoundingClientRect();
-  const mx=(e.clientX-r.left)/prev, my=(e.clientY-r.top)/prev;
-  originX=e.clientX-mx*scale;
-  originY=e.clientY-my*scale;
+// center on content (แก้ปัญหา “เบ้ซ้าย”)
+function centerStageOnContent() {
+  if (!els.length) return;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  els.forEach(el=>{
+    const l=el.offsetLeft,t=el.offsetTop,w=el.offsetWidth,h=el.offsetHeight;
+    minX=Math.min(minX,l); minY=Math.min(minY,t);
+    maxX=Math.max(maxX,l+w); maxY=Math.max(maxY,t+h);
+  });
+  const contentW=maxX-minX, contentH=maxY-minY;
+  const viewW=canvas.clientWidth, viewH=canvas.clientHeight;
+  const cx=minX+contentW/2, cy=minY+contentH/2;
+  originX=(viewW/2)-(cx*scale);
+  originY=(viewH/2)-(cy*scale);
   applyTransform();
-},{passive:false});
-
-// ---------- Pinch Zoom ----------
-const pointerMap=new Map();
-function pinchInfo(){
-  const pts=[...pointerMap.values()];
-  if(pts.length<2) return null;
-  const [a,b]=pts;
-  return {cx:(a.x+b.x)/2, cy:(a.y+b.y)/2, dist:Math.hypot(b.x-a.x,b.y-a.y)};
 }
-let pinchState=null;
-window.addEventListener("pointermove",e=>{
-  if(pointerMap.size>=2 && e.pointerType!=="mouse"){
-    const info=pinchInfo(); if(!info) return;
-    if(!pinchState){ pinchState={startDist:info.dist,startScale:scale}; }
-    else{
-      const k=info.dist/pinchState.startDist;
-      scale=Math.min(3,Math.max(0.3,pinchState.startScale*k));
+
+// รอให้รูปโหลดแล้วค่อย center (กันกระพริบ)
+Promise.all(loadPromises).then(() => {
+  centerStageOnContent();
+  if (!IS_MOBILE && !Object.keys(saved).length) saveLayoutNow();
+});
+
+// wheel zoom (desktop)
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const prev = scale;
+  const delta = -e.deltaY * WHEEL_ZOOM_STEP;
+  scale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, scale + delta));
+  const r = stage.getBoundingClientRect();
+  const mx = (e.clientX - r.left) / prev;
+  const my = (e.clientY - r.top ) / prev;
+  originX = e.clientX - mx * scale;
+  originY = e.clientY - my * scale;
+  applyTransform();
+}, {passive:false});
+
+// pinch zoom (touch)
+const pointerMap = new Map();
+function pinchInfo(){
+  const pts = [...pointerMap.values()];
+  if (pts.length < 2) return null;
+  const [a,b] = pts;
+  return { cx:(a.x+b.x)/2, cy:(a.y+b.y)/2, dist:Math.hypot(b.x-a.x, b.y-a.y) };
+}
+let pinchState = null;
+window.addEventListener('pointermove', (e) => {
+  if (pointerMap.size >= 2 && e.pointerType !== 'mouse') {
+    const info = pinchInfo(); if (!info) return;
+    if (!pinchState) {
+      pinchState = { startDist: info.dist, startScale: scale };
+    } else {
+      const k = info.dist / pinchState.startDist;
+      scale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, pinchState.startScale * k));
       applyTransform();
     }
   }
 },{passive:false});
-canvas.addEventListener("pointerdown",e=>pointerMap.set(e.pointerId,{x:e.clientX,y:e.clientY}));
-["pointerup","pointercancel","pointerout"].forEach(ev=>{
-  window.addEventListener(ev,e=>{pointerMap.delete(e.pointerId); if(pointerMap.size<2) pinchState=null;});
+canvas.addEventListener('pointerdown', e => pointerMap.set(e.pointerId, {x:e.clientX,y:e.clientY}));
+['pointerup','pointercancel','pointerout'].forEach(ev=>{
+  window.addEventListener(ev, e => { pointerMap.delete(e.pointerId); if (pointerMap.size < 2) pinchState = null; });
 });
 
-// ---------- Selection ----------
+// ---------- Selection + Drag + Resize ----------
 let selection=null,resizing=null;
 function showSelection(el){
   hideSelection();
-  selection=document.createElement("div");
-  selection.className="kw-selection";
-  ["nw","ne","sw","se"].forEach(pos=>{
-    const h=document.createElement("div");
-    h.className="kw-handle"; h.dataset.pos=pos;
-    h.addEventListener("pointerdown",ev=>startResize(ev,el,pos));
+  selection=document.createElement('div');
+  selection.className='kw-selection';
+  ['nw','ne','sw','se'].forEach(pos=>{
+    const h=document.createElement('div');
+    h.className='kw-handle'; h.dataset.pos=pos;
+    h.addEventListener('pointerdown', ev=>startResize(ev,el,pos));
     selection.appendChild(h);
   });
   stage.appendChild(selection);
@@ -146,49 +201,46 @@ function showSelection(el){
 function updateSelection(el){
   if(!selection) return;
   const s=stage.getBoundingClientRect(), r=el.getBoundingClientRect();
-  selection.style.left=(r.left-s.left)/scale+"px";
-  selection.style.top =(r.top -s.top )/scale+"px";
-  selection.style.width=r.width/scale+"px";
-  selection.style.height=r.height/scale+"px";
+  selection.style.left=(r.left-s.left)/scale+'px';
+  selection.style.top =(r.top -s.top )/scale+'px';
+  selection.style.width =r.width /scale+'px';
+  selection.style.height=r.height/scale+'px';
 }
 function hideSelection(){ if(selection) selection.remove(); selection=null; }
 
-// ---------- Drag ----------
 let active=null, offsetX=0, offsetY=0;
 function stageLocalXY(clientX, clientY){
   const s=stage.getBoundingClientRect();
   return {x:(clientX-s.left)/scale, y:(clientY-s.top)/scale};
 }
 
-stage.addEventListener("pointerdown",e=>{
-  const el=e.target.closest("img.draggable");
-  if(!el){ hideSelection(); return; }
-  active=el;
-  const r=el.getBoundingClientRect();
-  offsetX=e.clientX-r.left; offsetY=e.clientY-r.top;
+stage.addEventListener('pointerdown', e => {
+  const el = e.target.closest('img.draggable');
+  if (!el) { hideSelection(); return; }
+  active = el;
+  const r = el.getBoundingClientRect();
+  offsetX = e.clientX - r.left;
+  offsetY = e.clientY - r.top;
   showSelection(el);
   el.setPointerCapture(e.pointerId);
 });
-
-stage.addEventListener("pointermove",e=>{
-  if(resizing) return onResizeMove(e);
-  if(!active) return;
-  const pos=stageLocalXY(e.clientX-offsetX,e.clientY-offsetY);
-  active.style.left=pos.x+"px";
-  active.style.top =pos.y+"px";
+stage.addEventListener('pointermove', e => {
+  if (resizing) return onResizeMove(e);
+  if (!active) return;
+  const pos = stageLocalXY(e.clientX - offsetX, e.clientY - offsetY);
+  active.style.left = pos.x + 'px';
+  active.style.top  = pos.y + 'px';
   updateSelection(active);
 });
-
-stage.addEventListener("pointerup",e=>{
-  if(resizing){ endResize(); return; }
-  if(!active) return;
-  saveAll();
+stage.addEventListener('pointerup', e => {
+  if (resizing){ endResize(); return; }
+  if (!active) return;
+  saveLayoutNow();
   active.releasePointerCapture(e.pointerId);
-  active=null;
+  active = null;
 });
 
-// ---------- Resize ----------
-function startResize(e,el,pos){
+function startResize(e, el, pos){
   e.stopPropagation(); e.preventDefault();
   const r=el.getBoundingClientRect(), s=stage.getBoundingClientRect();
   resizing={el,pos,startX:e.clientX,startY:e.clientY,startW:r.width,startH:r.height,startL:(r.left-s.left)/scale,startT:(r.top-s.top)/scale};
@@ -198,11 +250,12 @@ function onResizeMove(e){
   const {el,pos,startX,startY,startW,startH,startL,startT}=resizing;
   let dx=(e.clientX-startX)/scale, dy=(e.clientY-startY)/scale;
   let newW=startW,newH=startH,newL=startL,newT=startT;
-  if(pos.includes("e")) newW=startW+dx;
-  if(pos.includes("s")) newH=startH+dy;
-  if(pos.includes("w")){ newW=startW-dx; newL=startL+dx; }
-  if(pos.includes("n")){ newH=startH-dy; newT=startT+dy; }
-  el.style.left=newL+"px"; el.style.top=newT+"px"; el.style.width=newW+"px"; el.style.height=newH+"px";
+  if(pos.includes('e')) newW=startW+dx;
+  if(pos.includes('s')) newH=startH+dy;
+  if(pos.includes('w')){ newW=startW-dx; newL=startL+dx; }
+  if(pos.includes('n')){ newH=startH-dy; newT=startT+dy; }
+  newW=Math.max(40,newW); newH=Math.max(40,newH);
+  el.style.left=newL+'px'; el.style.top=newT+'px'; el.style.width=newW+'px'; el.style.height=newH+'px';
   updateSelection(el);
 }
-function endResize(){ saveAll(); resizing=null; }
+function endResize(){ saveLayoutNow(); resizing=null; }
