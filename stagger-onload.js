@@ -1,18 +1,32 @@
-/* stagger-onload.js — Kwan cute stagger v2
- * ทำให้แต่ละ element ค่อยๆ โผล่มาแบบมีชีวิตชีวา (stagger + tiny bounce + random direction)
- * - ใช้ Web Animations API เพื่อไม่ชน transform เดิมของ element (เช่นตัวที่ลากได้)
- * - รอให้รูปโหลดก่อนแล้วค่อยเล่น จะได้ไม่กระตุก
+/* stagger-onload.js — v3 (no top-left flash)
+ * - ซ่อน #stage ชั่วคราวตั้งแต่เฟรมแรก -> รอรูป + layout พร้อม -> เผยด้วย stagger
+ * - ใช้ Web Animations API ไม่ทับ transform เดิม (เช่น element ที่ลากได้)
  * - เคารพ prefers-reduced-motion
- * - ไม่ต้องแก้ style.css/script.js เดิม
  */
 
 (function () {
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReduced) return;
 
-  // ตั้งค่าหลัก: ปรับตรงนี้ได้
+  // ---------- prelayout: ซ่อน #stage ให้เร็วที่สุด ----------
+  // พยายามหา #stage แล้วซ่อนไว้ทันที เพื่อตัดเฟรมที่ element ไปโผล่ที่ (0,0)
+  const stage = document.getElementById('stage');
+  if (stage) {
+    stage.style.visibility = 'hidden';
+    stage.style.opacity = '0';
+  }
+
+  // inject CSS เล็กน้อย (เผื่อหน้าไม่มี #stage ให้ fallback ซ่อนเฉพาะสิ่งที่จะเล่น)
+  const preCSS = `
+    .kw-pre-hide { visibility:hidden !important; opacity:0 !important; }
+  `;
+  const preStyle = document.createElement('style');
+  preStyle.setAttribute('data-kw-pre', '');
+  preStyle.appendChild(document.createTextNode(preCSS));
+  document.head.appendChild(preStyle);
+
+  // ---------- config ----------
   const CONFIG = {
-    // selector ที่คิดว่าเป็น "ชิ้น/รูป" บนหน้า (ครอบคลุมกว้างขึ้น)
     selectors: [
       '[data-piece]', '.piece', '.item', '.el', '.sprite', '.draggable',
       '#stage > *', '#stage img', '#stage svg',
@@ -20,16 +34,13 @@
       'main img', 'main svg',
       'img', 'svg'
     ],
-    // ระยะห่างเวลาแบบขั้นบันไดต่อชิ้น + สุ่ม
-    perItemStep: 90,      // ms ต่อ index
-    jitter: 220,          // ms แกว่งสุ่ม
-    baseDelay: 120,       // ms เปิดหัวนิดนึง
-    maxDelay: 2600,       // ms ไม่ให้ยืดเยื้อเกินไป
-    // ระยะเวลาและ easing
-    durMin: 620,          // ms
-    durMax: 920,          // ms
-    easing: 'cubic-bezier(.2,.75,.25,1.2)', // นุ่มๆ เด้งกำลังดี
-    // ทิศ/สไตล์เริ่มต้นแบบสุ่ม
+    perItemStep: 100,     // ms ต่อ index
+    jitter: 240,          // แกว่งสุ่มเวลา
+    baseDelay: 140,       // เปิดหัวเล็กน้อย
+    maxDelay: 2800,
+    durMin: 680,
+    durMax: 980,
+    easing: 'cubic-bezier(.2,.75,.25,1.2)',
     variants: [
       { from: 'translateY(18px) scale(0.96)', blur: 2 },
       { from: 'translateY(-14px) scale(0.96)', blur: 2 },
@@ -37,16 +48,14 @@
       { from: 'translateX(-18px) scale(0.96)', blur: 2 },
       { from: 'scale(0.92)', blur: 2 }
     ],
-    // จำกัดจำนวนสูงสุด ถ้าหน้าทั้งหน้ามี element เยอะมาก
     hardCap: 400
   };
 
-  // -------- utilities --------
-  function uniq(list) {
-    const set = new Set();
-    list.forEach(n => set.add(n));
-    return Array.from(set);
-  }
+  // ---------- utils ----------
+  const uniq = (list) => Array.from(new Set(list));
+  const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+  const randBetween = (min, max) => Math.random() * (max - min) + min;
+  const choose = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
   function inViewport(el) {
     const r = el.getBoundingClientRect?.();
@@ -54,11 +63,8 @@
   }
 
   function getCandidates() {
-    // รวมทุก selector แล้วกรองซ้ำ/ของไม่แสดงผลออก
     const found = [];
-    CONFIG.selectors.forEach(sel => {
-      document.querySelectorAll(sel).forEach(n => found.push(n));
-    });
+    CONFIG.selectors.forEach(sel => document.querySelectorAll(sel).forEach(n => found.push(n)));
     let list = uniq(found).filter(n => {
       const tag = n.tagName || '';
       if (/^(SCRIPT|LINK|STYLE|META|HEAD)$/.test(tag)) return false;
@@ -66,80 +72,62 @@
       return true;
     });
 
-    // ตัดพวก container ใหญ่ๆ ที่ไม่มีรูป/เนื้อหาออกบ้าง
     list = list.filter(n => {
       const tag = (n.tagName || '').toLowerCase();
-      if (tag === 'div' || tag === 'section' || tag === 'article') {
-        // ถ้าเป็นกล่องเปล่าๆ ก็ข้าม
-        return n.children.length === 0 ? false : true;
-      }
+      if ((tag === 'div' || tag === 'section' || tag === 'article') && n.children.length === 0) return false;
       return true;
     });
 
-    // กันเยอะเกินไป
-    if (list.length > CONFIG.hardCap) {
-      list = list.slice(0, CONFIG.hardCap);
-    }
+    if (list.length > CONFIG.hardCap) list = list.slice(0, CONFIG.hardCap);
     return list;
-  }
-
-  function randInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  function randBetween(min, max) {
-    return Math.random() * (max - min) + min;
-  }
-
-  function choose(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
   }
 
   function waitForImages(nodes) {
     const imgs = [];
     nodes.forEach(n => {
       if (n.tagName && n.tagName.toLowerCase() === 'img') imgs.push(n);
-      // เผื่อมีรูปซ่อนในลูก
-      n.querySelectorAll && n.querySelectorAll('img').forEach(img => imgs.push(img));
+      n.querySelectorAll && n.querySelectorAll('img').forEach(i => imgs.push(i));
     });
     const uniqImgs = uniq(imgs);
-    if (!uniqImgs.length) return Promise.resolve();
-
-    const pending = uniqImgs
-      .filter(img => !(img.complete && img.naturalWidth > 0));
-
+    const pending = uniqImgs.filter(img => !(img.complete && img.naturalWidth > 0));
     if (!pending.length) return Promise.resolve();
 
     return new Promise(resolve => {
       let left = pending.length;
-      const done = () => {
-        left -= 1;
-        if (left <= 0) resolve();
-      };
+      const done = () => { if (--left <= 0) resolve(); };
       pending.forEach(img => {
         img.addEventListener('load', done, { once: true });
         img.addEventListener('error', done, { once: true });
       });
-      // safety timeout 2.5s เผื่อบางรูปช้า
-      setTimeout(resolve, 2500);
+      setTimeout(resolve, 2500); // safety
     });
   }
 
-  // -------- main anim --------
+  // ---------- main ----------
   async function run() {
     const nodes = getCandidates();
-    if (!nodes.length) return;
+    if (!nodes.length) {
+      // ไม่มีเป้าหมาย ก็แค่ออก #stage ให้เห็น
+      if (stage) { stage.style.visibility = 'visible'; stage.style.opacity = '1'; }
+      return;
+    }
 
-    // ซ่อนเบาๆ ก่อน เพื่อกันภาพแวบ
+    // ป้องกันแวบ: ซ่อนทุกชิ้นไว้ก่อน
     nodes.forEach(n => {
-      n.style.opacity = '0';
+      n.classList.add('kw-pre-hide');
       n.style.willChange = 'transform, opacity, filter';
     });
 
     await waitForImages(nodes);
 
-    // ใช้ IntersectionObserver เพื่อเล่นเฉพาะที่อยู่ใน viewport (เผื่อหน้ายาว)
-    const io = new IntersectionObserver((entries) => {
+    // ตอนนี้ layout + รูปพร้อมแล้ว ค่อยโชว์ stage
+    if (stage) {
+      stage.style.visibility = 'visible';
+      stage.style.opacity = '1';
+    }
+
+    // เล่นเฉพาะที่เข้าหน้าจอ (เผื่อหน้ายาว)
+    const io = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (!entry.isIntersecting) return;
         const el = entry.target;
@@ -149,51 +137,36 @@
         const varObj = choose(CONFIG.variants);
         const delay = Math.max(
           0,
-          Math.min(
-            CONFIG.maxDelay,
-            CONFIG.baseDelay + idx * CONFIG.perItemStep + randInt(-CONFIG.jitter / 2, CONFIG.jitter / 2)
-          )
+          Math.min(CONFIG.maxDelay, CONFIG.baseDelay + idx * CONFIG.perItemStep + randInt(-CONFIG.jitter / 2, CONFIG.jitter / 2))
         );
         const dur = randBetween(CONFIG.durMin, CONFIG.durMax);
 
-        // ใช้ WAAPI เพื่อไม่ทับ transform เดิม
-        // เพิ่ม blur เบาหน่อย ให้ดูฟุ้งตอนโผล่
-        const keyframes = [
-          { opacity: 0, transform: varObj.from, filter: `blur(${varObj.blur}px)` },
-          { opacity: 1, transform: 'none', filter: 'blur(0px)' }
-        ];
-
-        // เริ่มเล่นแบบ stagger
+        // เลิกซ่อนทันทีที่กำลังจะเล่น (จะไม่เห็นเฟรมที่ (0,0) เพราะ stage เพิ่งถูกเปิด)
         setTimeout(() => {
-          // ถ้าโดนลบจาก DOM ไปแล้ว ให้ข้าม
           if (!document.body.contains(el)) return;
 
-          // แก้เผื่อ element มี visibility:hidden จาก CSS อื่น
-          el.style.visibility = 'visible';
+          el.classList.remove('kw-pre-hide');
 
-          const anim = el.animate(keyframes, {
-            duration: dur,
-            easing: CONFIG.easing,
-            fill: 'both'
-          });
+          const anim = el.animate(
+            [
+              { opacity: 0, transform: varObj.from, filter: `blur(${varObj.blur}px)` },
+              { opacity: 1, transform: 'none', filter: 'blur(0px)' }
+            ],
+            { duration: dur, easing: CONFIG.easing, fill: 'both' }
+          );
 
           anim.addEventListener('finish', () => {
             el.style.opacity = '1';
             el.style.filter = 'none';
-            // คืน will-change เป็น auto เพื่อประหยัด
             el.style.willChange = 'auto';
           });
         }, delay);
       });
-    }, { root: null, rootMargin: '0px', threshold: 0.01 });
+    }, { threshold: 0.01 });
 
-    // observe ทุกตัว
     nodes.forEach(n => io.observe(n));
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run, { once: true });
-  } else {
-    run();
-  }
+  // ใช้ window.load เพื่อให้สคริปต์วางตำแหน่งของคุณทำงานเสร็จก่อน (กันแวบ)
+  window.addEventListener('load', run, { once: true });
 })();
