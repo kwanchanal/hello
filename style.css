@@ -1,4 +1,4 @@
-/* Layout base */
+/* Base */
 html, body {
   margin: 0;
   padding: 0;
@@ -6,23 +6,22 @@ html, body {
   height: 100%;
   overflow: hidden;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-  /* gradient BG กลับมา */
   background: radial-gradient(circle at 50% 55%, #aee7ff 0%, #bff0de 40%, #e9f27f 100%);
 }
 
 #canvas {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
 
+/* สำคัญ: ไม่ใช้ flex แล้ว ให้ stage อยู่แบบ absolute และ transform จาก JS */
 #stage {
-  display: inline-block;   /* สำคัญ: ให้ stage กว้างเท่ากับ content */
-  position: relative;
-  transform-origin: center center; /* เวลาซูม ให้ซูมจากกลาง */
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0; /* ให้ translate(x,y) นับจากมุมซ้ายบนของ stage */
 }
 
 /* pieces */
@@ -37,9 +36,9 @@ html, body {
 
 /* cute hover bounce */
 @keyframes kw_bounce {
-  0%   { transform: scale(.98); }
-  50%  { transform: scale(1.04); }
-  100% { transform: scale(1); }
+  0% { transform: scale(.98); }
+  50%{ transform: scale(1.04); }
+  100%{ transform: scale(1); }
 }
 .hover-bounce:hover { animation: kw_bounce .8s cubic-bezier(.2,.75,.25,1.2); }
 
@@ -64,7 +63,7 @@ html, body {
 .kw-handle[data-pos="sw"]{ left:-6px; bottom:-6px; cursor:nesw-resize; }
 .kw-handle[data-pos="se"]{ right:-6px; bottom:-6px; cursor:nwse-resize; }
 
-/* hint pill กลับมา */
+/* hint pill */
 .hint {
   position: absolute;
   left: 50%;
