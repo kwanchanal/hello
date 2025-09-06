@@ -1,10 +1,5 @@
 // =====================================================
-// Canvas Playground (center-by-content)
-// - Drag + Resize
-// - Desktop persist (localStorage), Mobile random each load
-// - Pan + Wheel zoom (desktop) / Pinch zoom (touch)
-// - Entrance animation อยู่ใน index.html
-// - จัดกึ่งกลางด้วย JS: centerStageOnContent() ✅
+// Canvas Playground (center-by-content) + entrance helper
 // =====================================================
 
 const canvas = document.getElementById('canvas');
@@ -75,13 +70,13 @@ function saveLayoutNow() {
 }
 const saveLayout = (()=>{let t=null;return()=>{clearTimeout(t);t=setTimeout(saveLayoutNow,120);};})();
 
-// Build DOM
+// Build DOM (ใส่คลาส .entering เพื่อให้ index เล่น animation ได้ลื่น ไม่แว็บ)
 const els = [];
 const loadPromises = [];
 for (let i = 1; i <= IMAGE_COUNT; i++) {
   const el = document.createElement('img');
   el.src = `elements/frame-${i}.png`;
-  el.className = 'draggable hover-bounce';
+  el.className = 'draggable hover-bounce entering';
   el.dataset.id = `frame-${i}`;
   el.draggable = false;
   el.addEventListener('dragstart', e => e.preventDefault());
@@ -95,8 +90,7 @@ for (let i = 1; i <= IMAGE_COUNT; i++) {
 }
 
 const saved = loadSavedLayout();
-const initialLayout =
-  (Object.keys(saved).length ? saved : (IS_MOBILE ? computeMobileLayoutRandom() : desktopLayout));
+const initialLayout = (Object.keys(saved).length ? saved : (IS_MOBILE ? computeMobileLayoutRandom() : desktopLayout));
 
 function applyLayout(layout) {
   els.forEach(el => {
@@ -118,7 +112,7 @@ function applyTransform() {
 }
 applyTransform();
 
-// ✅ Center stage so content center == viewport center
+// Center stage by content
 function centerStageOnContent() {
   if (!els.length) return;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -138,7 +132,6 @@ function centerStageOnContent() {
   applyTransform();
 }
 
-// หลังรูปโหลดเสร็จ ค่อยจัดกลาง (กันกระพริบ) แล้ว seed persist ครั้งแรกบน desktop
 Promise.all(loadPromises).then(() => {
   centerStageOnContent();
   if (!IS_MOBILE && !Object.keys(saved).length) saveLayoutNow();
@@ -219,8 +212,10 @@ function stageLocalXY(clientX, clientY){
 stage.addEventListener('pointerdown', e => {
   const el = e.target.closest('img.draggable');
   if (!el) { hideSelection(); return; }
-  // ถ้า element นั้นยังมี entrance animation อยู่ → ยกเลิก
+
+  // ยกเลิก entrance animation ของ element นั้น (ถ้ายังเล่นอยู่)
   el.getAnimations?.().forEach(a => a.cancel());
+  el.classList.remove('entering');
 
   active = el;
   const r = el.getBoundingClientRect();
@@ -246,7 +241,6 @@ stage.addEventListener('pointerup', e => {
   active = null;
 });
 
-// Resize
 function startResize(e,el,pos){
   e.stopPropagation(); e.preventDefault();
   const r=el.getBoundingClientRect(), s=stage.getBoundingClientRect();
@@ -257,10 +251,10 @@ function onResizeMove(e){
   const {el,pos,startX,startY,startW,startH,startL,startT}=resizing;
   let dx=(e.clientX-startX)/scale, dy=(e.clientY-startY)/scale;
   let newW=startW,newH=startH,newL=startL,newT=startT;
-  if(pos.includes('e')) newW=startW+dx;
-  if(pos.includes('s')) newH=startH+dy;
-  if(pos.includes('w')){ newW=startW-dx; newL=startL+dx; }
-  if(pos.includes('n')){ newH=startH-dy; newT=startT+dy; }
+  if(pos.includes("e")) newW=startW+dx;
+  if(pos.includes("s")) newH=startH+dy;
+  if(pos.includes("w")){ newW=startW-dx; newL=startL+dx; }
+  if(pos.includes("n")){ newH=startH-dy; newT=startT+dy; }
   newW=Math.max(40,newW); newH=Math.max(40,newH);
   el.style.left=newL+'px'; el.style.top=newT+'px'; el.style.width=newW+'px'; el.style.height=newH+'px';
   updateSelection(el);
