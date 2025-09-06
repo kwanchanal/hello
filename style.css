@@ -57,7 +57,7 @@ html, body {
   filter: drop-shadow(0 14px 30px rgba(0,0,0,.26));
 }
 
-/* Hover bounce (ทำงานเฉพาะอุปกรณ์ที่รองรับ hover) */
+/* Hover bounce (เฉพาะอุปกรณ์ที่รองรับ hover) */
 @media (hover:hover) {
   .draggable:hover { animation: hoverBounce .55s ease; }
 }
