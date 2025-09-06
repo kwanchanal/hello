@@ -1,8 +1,12 @@
 // =========================
-// Canvas Playground — JS (Desktop fixed + Mobile random EVERY load)
+// Canvas Playground — Full JS
+// - Desktop: fixed layout
+// - Mobile: random layout on every load
+// - Drag / Pan / Pinch-Zoom / Resize with handles
+// - Robust pointer handling (no "stuck to mouse")
 // =========================
 
-// ---------- DESKTOP LAYOUT (คงที่ตามที่ให้มา) ----------
+// ---------- DESKTOP LAYOUT (คงที่) ----------
 const desktopLayout = {
   "frame-1":  { "x": 646.51,  "y": -281.271, "w": 300 },
   "frame-2":  { "x": 75.6457, "y": -184.501, "w": 300 },
@@ -29,42 +33,36 @@ const desktopLayout = {
   "frame-23": { "x": -579.162,"y": 699.192,  "w": 300 }
 };
 
-// ---------- MOBILE LAYOUT: “สุ่มจริงทุกครั้ง” ----------
+// ---------- MOBILE LAYOUT (สุ่มใหม่ทุกครั้ง) ----------
 function computeMobileLayoutRandom() {
-  // ใช้ Math.random() โดยตรง + เวลา เพื่อให้แตกต่างทุก reload
+  const ids = Array.from({ length: 23 }, (_, i) => `frame-${i + 1}`);
+  const baseWMin = 210, baseWMax = 300;
+  const minDist = 250;
+  const tries = 600;
+  const R_x = 750, R_y = 950;
+
   function rand() { return Math.random(); }
-
-  const ids = Array.from({length:23}, (_,i)=>`frame-${i+1}`);
-
-  const baseWMin = 210, baseWMax = 300;   // ช่วงความกว้าง
-  const minDist  = 250;                   // กันชนระหว่างรูป
-  const tries    = 600;                   // ความพยายามวางต่อรูป
-
-  // วงรีสำหรับสุ่มจุด (ศูนย์กลาง = 0,0 จะถูก center อีกชั้นตอน render)
-  const R_x = 750;                        // รัศมีแนวนอน
-  const R_y = 950;                        // รัศมีแนวตั้ง
+  function randomInEllipse() {
+    const theta = rand() * Math.PI * 2;
+    const r = Math.sqrt(rand()); // bias เข้าใกล้กลาง
+    return { x: Math.cos(theta) * R_x * r, y: Math.sin(theta) * R_y * r };
+  }
 
   const placed = [];
   const layout = {};
-
-  function randomInEllipse() {
-    const theta = rand() * Math.PI * 2;
-    const r = Math.sqrt(rand());          // bias ให้กระจุกกลาง
-    return { x: Math.cos(theta) * R_x * r, y: Math.sin(theta) * R_y * r };
-  }
   function farEnough(x, y) {
-    for (const p of placed) if (Math.hypot(x-p.x, y-p.y) < minDist) return false;
+    for (const p of placed) if (Math.hypot(x - p.x, y - p.y) < minDist) return false;
     return true;
   }
 
-  ids.forEach((id) => {
-    const w = baseWMin + rand() * (baseWMax - baseWMin);
+  ids.forEach(id => {
+    const w = baseWMin + Math.random() * (baseWMax - baseWMin);
     let pos = null;
-    for (let t=0; t<tries; t++) {
+    for (let t = 0; t < tries; t++) {
       const p = randomInEllipse();
       if (farEnough(p.x, p.y)) { pos = p; break; }
     }
-    if (!pos) pos = randomInEllipse(); // ถ้าแน่นมาก ยอมซ้อนบ้างเล็กน้อย
+    if (!pos) pos = randomInEllipse();
     placed.push(pos);
     layout[id] = { x: pos.x, y: pos.y, w };
   });
@@ -72,7 +70,7 @@ function computeMobileLayoutRandom() {
   return layout;
 }
 
-// ---------- เลือก layout ตามหน้าจอ ----------
+// ---------- เลือก layout ตามอุปกรณ์ ----------
 const isMobile = window.matchMedia('(max-width: 640px)').matches;
 const initialLayout = isMobile ? computeMobileLayoutRandom() : desktopLayout;
 
@@ -104,12 +102,13 @@ function applyLayout(layout) {
     el.style.left  = lay.x + 'px';
     el.style.top   = lay.y + 'px';
     el.style.width = lay.w + 'px';
+    el.style.removeProperty('height');
   });
 }
 applyLayout(initialLayout);
 
 // ---------- Pan / Zoom ----------
-let scale   = isMobile ? 0.6 : 0.5;  // มือถือซูมเข้าเล็กน้อย
+let scale   = isMobile ? 0.6 : 0.5;   // เริ่มซูม
 let originX = 0, originY = 0;
 
 function applyTransform() {
@@ -117,25 +116,27 @@ function applyTransform() {
 }
 applyTransform();
 
-// จัด content ให้อยู่กลางจอ
-function centerStageOnContent(){
+// จัด content เข้ากลางจอ
+function centerStageOnContent() {
   if (!els.length) return;
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  els.forEach(el=>{
-    const l=el.offsetLeft,t=el.offsetTop,w=el.offsetWidth,h=el.offsetHeight;
-    minX=Math.min(minX,l); minY=Math.min(minY,t);
-    maxX=Math.max(maxX,l+w); maxY=Math.max(maxY,t+h);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  els.forEach(el => {
+    const l = el.offsetLeft, t = el.offsetTop, w = el.offsetWidth, h = el.offsetHeight;
+    minX = Math.min(minX, l); minY = Math.min(minY, t);
+    maxX = Math.max(maxX, l + w); maxY = Math.max(maxY, t + h);
   });
-  const contentW=maxX-minX, contentH=maxY-minY;
-  const viewW=canvas.clientWidth, viewH=canvas.clientHeight;
-  const cx=minX+contentW/2, cy=minY+contentH/2;
-  originX=(viewW/2)-(cx*scale);
-  originY=(viewH/2)-(cy*scale);
+  const contentW = maxX - minX, contentH = maxY - minY;
+  const viewW = canvas.clientWidth, viewH = canvas.clientHeight;
+  const cx = minX + contentW / 2, cy = minY + contentH / 2;
+  originX = (viewW / 2) - (cx * scale);
+  originY = (viewH / 2) - (cy * scale);
   applyTransform();
 }
 Promise.all(loadPromises).then(centerStageOnContent);
 
-// ---------- Selection / Drag / Resize ----------
+// =====================================================
+//               Pointer handling (robust)
+// =====================================================
 const pointerMap = new Map();
 function getXY(e){ return {x:e.clientX, y:e.clientY}; }
 function pinchInfo(){
@@ -146,7 +147,9 @@ function pinchInfo(){
 }
 
 let selection=null, activeDrag=null, dragOffset={x:0,y:0}, userInteracted=false;
+let resizing=null;
 
+// selection frame + handles
 function addSelection(el){
   removeSelection();
   selection=document.createElement('div');
@@ -171,13 +174,10 @@ function updateSelection(el){
 }
 function removeSelection(){ if(selection) selection.remove(); selection=null; }
 
-let resizing=null;
 function startResize(e,el,corner){
   e.stopPropagation(); userInteracted=true;
-  el.setPointerCapture(e.pointerId);
+  try{ el.setPointerCapture(e.pointerId); }catch{}
   resizing={el,corner,startX:e.clientX,startY:e.clientY,startW:el.offsetWidth,startH:el.offsetHeight};
-  window.addEventListener('pointermove',onResizeMove,{passive:false});
-  window.addEventListener('pointerup',endResize,{passive:true});
 }
 function onResizeMove(e){
   if(!resizing) return; e.preventDefault();
@@ -187,13 +187,17 @@ function onResizeMove(e){
   if(corner.includes('s')) el.style.height=(startH+dy)+'px';
   updateSelection(el);
 }
-function endResize(){
+
+// ---- เคลียร์สถานะทุกอย่าง ----
+function endAllPointers(){
   resizing=null;
-  window.removeEventListener('pointermove',onResizeMove);
-  window.removeEventListener('pointerup',endResize);
+  activeDrag=null;
+  canvas._pinch=null;
+  canvas._panPrev=null;
+  pointerMap.clear();
 }
 
-// pointer flow
+// เริ่มกด
 canvas.addEventListener('pointerdown',(e)=>{
   pointerMap.set(e.pointerId, getXY(e));
   if(e.target.classList?.contains('draggable') && pointerMap.size===1){
@@ -202,14 +206,19 @@ canvas.addEventListener('pointerdown',(e)=>{
     const r=activeDrag.getBoundingClientRect();
     dragOffset.x=e.clientX-r.left; dragOffset.y=e.clientY-r.top;
     addSelection(activeDrag);
-    activeDrag.setPointerCapture(e.pointerId);
+    try{ activeDrag.setPointerCapture(e.pointerId); }catch{}
   }
   e.preventDefault();
 },{passive:false});
 
-canvas.addEventListener('pointermove',(e)=>{
+// ระหว่างขยับ (ฟังบน window เพื่อไม่พลาด)
+window.addEventListener('pointermove',(e)=>{
   pointerMap.set(e.pointerId, getXY(e));
-  if(resizing) return;
+
+  // ถ้าปุ่มเมาส์ไม่กดแล้วแต่ state ยังอยู่ → เคลียร์
+  if (e.buttons===0 && (activeDrag || resizing)) { endAllPointers(); return; }
+
+  if(resizing){ onResizeMove(e); return; }
 
   // pinch
   if(pointerMap.size>=2){
@@ -224,9 +233,9 @@ canvas.addEventListener('pointermove',(e)=>{
       const my=(canvas._pinch.cy-canvas._pinch.rect.top )/prev;
       originX=canvas._pinch.cx - mx*scale;
       originY=canvas._pinch.cy - my*scale;
-      applyTransform(); updateSelection(activeDrag);
+      applyTransform(); if(activeDrag) updateSelection(activeDrag);
     }
-    e.preventDefault(); return;
+    return;
   }
 
   // drag element
@@ -235,30 +244,29 @@ canvas.addEventListener('pointermove',(e)=>{
     const x=(e.clientX-dragOffset.x-s.left)/scale;
     const y=(e.clientY-dragOffset.y-s.top )/scale;
     activeDrag.style.left=x+'px'; activeDrag.style.top=y+'px';
-    updateSelection(activeDrag); e.preventDefault(); return;
+    updateSelection(activeDrag);
+    return;
   }
 
-  // pan
+  // pan canvas
   if(!activeDrag && pointerMap.size===1){
     const prev=canvas._panPrev||getXY(e);
     originX+=(e.clientX-prev.x); originY+=(e.clientY-prev.y);
-    canvas._panPrev=getXY(e); applyTransform(); e.preventDefault(); return;
+    canvas._panPrev=getXY(e); applyTransform(); return;
   }
-},{passive:false});
-
-canvas.addEventListener('pointerup',(e)=>{
-  pointerMap.delete(e.pointerId);
-  if(activeDrag){ try{ activeDrag.releasePointerCapture(e.pointerId);}catch{} }
-  if(pointerMap.size<2) canvas._pinch=null;
-  if(pointerMap.size===0){ activeDrag=null; canvas._panPrev=null; }
 },{passive:true});
 
-canvas.addEventListener('pointercancel',(e)=>{
-  pointerMap.delete(e.pointerId);
-  canvas._pinch=null; canvas._panPrev=null; activeDrag=null;
-},{passive:true});
+// ปล่อย/ยกเลิก/ออกนอก/สลับแท็บ → เคลียร์ให้ชัวร์
+window.addEventListener('pointerup',     ()=>endAllPointers(), {passive:true});
+window.addEventListener('pointercancel', ()=>endAllPointers(), {passive:true});
+window.addEventListener('pointerleave',  ()=>endAllPointers(), {passive:true});
+window.addEventListener('blur',          ()=>endAllPointers());
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) endAllPointers(); });
 
-// wheel zoom (desktop)
+// เผื่อ element lose capture
+stage.addEventListener('lostpointercapture', ()=>endAllPointers());
+
+// ---------- wheel zoom (desktop) ----------
 canvas.addEventListener('wheel',(e)=>{
   e.preventDefault();
   const prev=scale, delta=-e.deltaY*0.001;
@@ -269,7 +277,7 @@ canvas.addEventListener('wheel',(e)=>{
   applyTransform();
 },{passive:false});
 
-// เปลี่ยนเลย์เอาต์เมื่อข้าม breakpoint (ถ้ายังไม่เล่น)
+// ---------- Breakpoint change (ถ้า user ยังไม่ขยับ ค่อยสลับเลย์เอาต์) ----------
 const mq = window.matchMedia('(max-width: 640px)');
 mq.addEventListener?.('change', (ev)=>{
   if(userInteracted) return;
@@ -278,7 +286,7 @@ mq.addEventListener?.('change', (ev)=>{
   centerStageOnContent();
 });
 
-// Export layout (พิมพ์ใน Console: exportLayout())
+// ---------- Export layout (ใช้ใน Console: exportLayout()) ----------
 window.exportLayout = function(){
   const obj={};
   document.querySelectorAll('.draggable').forEach(el=>{
@@ -292,7 +300,7 @@ window.exportLayout = function(){
   return obj;
 };
 
-// Dev helper: ?mobile / ?desktop (สุ่มมือถือทุกครั้งอยู่แล้ว)
+// ---------- Dev helper: ?mobile / ?desktop ----------
 (function enforceByQuery(){
   const q=new URLSearchParams(location.search);
   if(q.has('mobile') || q.has('desktop')){
