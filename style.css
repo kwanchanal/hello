@@ -1,24 +1,27 @@
+/* Layout base */
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #f0f8ff;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  /* gradient BG กลับมา */
+  background: radial-gradient(circle at 50% 55%, #aee7ff 0%, #bff0de 40%, #e9f27f 100%);
 }
 
 #canvas {
+  position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  position: relative;
 }
 
 #stage {
   position: absolute;
-  top: 0; left: 0;
-  transform-origin: 0 0;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0; /* สำคัญสำหรับ pan/zoom */
 }
 
 /* pieces */
@@ -33,9 +36,9 @@ html, body {
 
 /* cute hover bounce */
 @keyframes kw_bounce {
-  0% { transform: scale(.98); }
-  50%{ transform: scale(1.04); }
-  100%{ transform: scale(1); }
+  0%   { transform: scale(.98); }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
 }
 .hover-bounce:hover { animation: kw_bounce .8s cubic-bezier(.2,.75,.25,1.2); }
 
@@ -59,3 +62,20 @@ html, body {
 .kw-handle[data-pos="ne"]{ right:-6px; top:-6px; cursor:nesw-resize; }
 .kw-handle[data-pos="sw"]{ left:-6px; bottom:-6px; cursor:nesw-resize; }
 .kw-handle[data-pos="se"]{ right:-6px; bottom:-6px; cursor:nwse-resize; }
+
+/* hint pill กลับมา */
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  background: rgba(255, 200, 210, 0.9);
+  color: #1f2937;
+  padding: 10px 16px;
+  border-radius: 16px;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.25);
+  white-space: nowrap;
+  pointer-events: none;
+}
