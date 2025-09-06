@@ -17,52 +17,60 @@
   <!-- main interaction -->
   <script src="./script.js"></script>
 
-  <!-- entrance animation -->
+  <!-- Entrance animation: cinematic, once, no flicker -->
   <script>
     (function () {
-      const SELECTORS = [
-        '#stage > *',
-        '#stage img',
-        '#stage svg'
-      ];
-      const STAGGER  = 120;   // หน่วงทีละชิ้น (ms)
-      const DURATION = 900;   // ระยะเวลา fade-in (ms)
-      const EASING   = 'cubic-bezier(.2,.75,.25,1.2)';
+      // เราจะ animate เฉพาะที่มีคลาส .entering (ที่ script.js ใส่มาให้)
+      const SELECTOR = '#stage > .entering, #stage img.entering, #stage svg.entering';
 
-      function animateNodes(nodes){
+      // โทนเนิบ ๆ cinematic
+      const STAGGER  = 160;   // หน่วงทีละชิ้น (ms)
+      const DURATION = 1400;  // ระยะเวลา (ms)
+      const EASING   = 'cubic-bezier(.16,.84,.16,1)';
+
+      function animateOnce(nodes){
         nodes.forEach((el, i) => {
-          // กัน animation เก่า
+          // กันซ้ำ
           el.getAnimations?.().forEach(a => a.cancel());
 
           const anim = el.animate(
             [
-              { opacity: 0, transform: 'translateY(40px) scale(0.9)', filter: 'blur(3px)' },
-              { opacity: 1, transform: 'translateY(0) scale(1)',      filter: 'blur(0)' }
+              // ค่าจุดเริ่มตรงกับ .entering ใน CSS
+              { opacity: 0, transform: 'translateY(48px) scale(0.92)' },
+              { opacity: 1, transform: 'translateY(0) scale(1)' }
             ],
             {
               duration: DURATION,
               delay: i * STAGGER,
               easing: EASING,
-              fill: 'forwards' // คงอยู่ที่ state สุดท้าย ไม่กระพริบซ้ำ
+              fill: 'forwards',
+              composite: 'replace'
             }
           );
 
-          // safety กันบาง browser ค้าง frame แปลก
           anim.addEventListener('finish', () => {
-            try { anim.commitStyles(); anim.cancel(); } catch {}
+            try {
+              anim.commitStyles();   // คงค่าปลายทาง
+              anim.cancel();         // แล้วล้าง animation timeline
+            } catch {}
+            el.classList.remove('entering'); // เอาคลาสซ่อนออก → ไม่มีแว็บ/กระพริบ
           });
         });
       }
 
-      // เล่น animation ครั้งเดียวตอน load
       window.addEventListener('load', () => {
-        const els = Array.from(document.querySelectorAll(SELECTORS.join(',')));
-        if (els.length) animateNodes(els);
+        const nodes = Array.from(document.querySelectorAll(SELECTOR));
+        if (nodes.length) animateOnce(nodes);
 
-        // เมื่อ user เริ่ม interact ให้ยกเลิก animation ของ element นั้น
-        document.addEventListener('pointerdown', e => {
+        // ถ้า user แตะ/ลากก่อนจบ ให้ยกเลิก animation ของ element นั้น
+        document.addEventListener('pointerdown', (e) => {
           const el = e.target.closest('#stage > *');
-          if (el) el.getAnimations?.().forEach(a => a.cancel());
+          if (!el) return;
+          el.getAnimations?.().forEach(a => a.cancel());
+          el.classList.remove('entering');
+          // ตั้งค่าให้เป็นปลายทางทันที เพื่อไม่ชักกระพริบ
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0) scale(1)';
         }, { capture: true });
       }, { once: true });
     })();
