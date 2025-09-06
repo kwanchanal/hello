@@ -2,21 +2,25 @@
 <html lang="th">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Helloo — Sa • Waddee • Ka</title>
-  <meta name="description" content="Canvas-like page with draggable PNG elements, selection frame, resize handles, pan & zoom.">
+  <meta name="description" content="Canvas-like page with draggable PNG elements, selection frame, resize handles, pan, zoom (pinch), and mobile-friendly gestures.">
   <style>
     :root{
-      --blue:#81DBFC;   /* ฟ้า = center */
-      --green:#E3F2BD;  /* เขียว = edge  */
-      --sel:#1e90ff;    /* สีกรอบเลือก */
+      --blue:#81DBFC;
+      --green:#E3F2BD;
+      --sel:#1e90ff;
       --hintShadow: 0 6px 26px rgba(0,0,0,.18);
     }
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto}
     body{ background: radial-gradient(circle at center, var(--blue) 0%, var(--blue) 35%, var(--green) 100%); }
 
-    #canvas{ position:fixed; inset:0; overflow:hidden; touch-action:none; cursor:default; }
+    #canvas{
+      position:fixed; inset:0; overflow:hidden; cursor:default;
+      /* สำคัญมากสำหรับมือถือ: ปล่อยให้เราควบคุมเจสเจอร์เอง */
+      touch-action:none;
+    }
     #stage{ position:absolute; left:0; top:0; transform-origin:0 0; width:3600px; height:2400px; }
 
     .draggable{
@@ -24,98 +28,82 @@
       filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));
       transition: transform .2s ease;
       will-change: transform;
+      touch-action:none; /* เพื่อรับ pointermove โดยไม่สกรอลล์หน้า */
     }
     .draggable:active{ cursor:grabbing; }
 
-    /* hover bounce */
-    .draggable:hover{
-      animation: bounce 0.6s;
-      transition: none;
+    /* hover bounce (ทำงานบนเดสก์ท็อป) */
+    @media (hover:hover){
+      .draggable:hover{ animation: bounce .6s; transition:none; }
     }
     @keyframes bounce{
-      0%   { transform: translateY(0) scale(1); }
-      30%  { transform: translateY(-12px) scale(1.05); }
-      50%  { transform: translateY(0) scale(0.98); }
-      70%  { transform: translateY(-6px)  scale(1.02); }
-      100% { transform: translateY(0) scale(1); }
+      0%{transform:translateY(0) scale(1)}
+      30%{transform:translateY(-12px) scale(1.05)}
+      50%{transform:translateY(0) scale(.98)}
+      70%{transform:translateY(-6px) scale(1.02)}
+      100%{transform:translateY(0) scale(1)}
     }
 
-    /* staged entrance (ใช้ class ไม่ใช้ inline opacity) */
-    .entrance{
-      animation: popIn 720ms cubic-bezier(.2,.8,.2,1) both;
-    }
-    @keyframes popIn {
-      0%   { transform: translateY(20px) scale(0.94); opacity:0; }
-      60%  { transform: translateY(-6px)  scale(1.03); opacity:1; }
-      100% { transform: translateY(0)     scale(1);    opacity:1; }
+    /* staged entrance */
+    .entrance{ animation: popIn 720ms cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes popIn{
+      0%  { transform:translateY(20px) scale(.94); opacity:0 }
+      60% { transform:translateY(-6px)  scale(1.03); opacity:1 }
+      100%{ transform:translateY(0)     scale(1);    opacity:1 }
     }
 
-    /* hint playful */
+    /* hint */
     .hint{
-      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-      background: linear-gradient(135deg, #FFE29A 0%, #FF9DE2 50%, #7AE1FF 100%);
-      background-size: 200% 200%;
-      animation: shimmer 10s ease-in-out infinite;
-      color:#000;
-      opacity:.5;
-      padding:10px 18px; border-radius:14px;
-      font-size:14px; font-weight:600;
-      box-shadow: var(--hintShadow); text-align:center;
-      border:1px solid rgba(255,255,255,.6);
-      pointer-events:none;
+      position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
+      background:linear-gradient(135deg,#FFE29A 0%,#FF9DE2 50%,#7AE1FF 100%);
+      background-size:200% 200%; animation:shimmer 10s ease-in-out infinite;
+      color:#000; opacity:.5; padding:10px 18px; border-radius:14px;
+      font-size:14px; font-weight:600; box-shadow:var(--hintShadow);
+      border:1px solid rgba(255,255,255,.6); text-align:center; pointer-events:none;
     }
-    @keyframes shimmer {
-      0% { background-position: 0% 50%; }
-      50%{ background-position: 100% 50%; }
-      100%{background-position: 0% 50%; }
+    @keyframes shimmer{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @media (max-width:600px){
+      .hint{ font-size:13px; bottom: calc(env(safe-area-inset-bottom,0) + 12px); padding:9px 14px; }
     }
 
-    /* Selection frame */
-    .selection{
-      position:absolute; pointer-events:none;
-      outline: 2px solid var(--sel);
-      outline-offset: 0;
-      border-radius: 6px;
-    }
+    /* selection frame */
+    .selection{ position:absolute; pointer-events:none; outline:2px solid var(--sel); border-radius:6px; }
     .handle{
-      position:absolute; width:12px; height:12px; border:2px solid #fff; background: var(--sel);
-      border-radius: 3px; box-shadow:0 0 0 1px rgba(0,0,0,.25);
-      pointer-events:auto; cursor:nwse-resize;
+      position:absolute; width:12px; height:12px; border:2px solid #fff; background:var(--sel);
+      border-radius:3px; box-shadow:0 0 0 1px rgba(0,0,0,.25); pointer-events:auto; cursor:nwse-resize;
+      touch-action:none;
     }
-    .handle.ne, .handle.sw{ cursor:nesw-resize; }
-    .handle.nw{ left:-6px;  top:-6px; }
-    .handle.ne{ right:-6px; top:-6px; }
-    .handle.sw{ left:-6px;  bottom:-6px; }
-    .handle.se{ right:-6px; bottom:-6px; }
+    .handle.ne,.handle.sw{ cursor:nesw-resize }
+    .handle.nw{left:-6px; top:-6px} .handle.ne{right:-6px; top:-6px}
+    .handle.sw{left:-6px; bottom:-6px} .handle.se{right:-6px; bottom:-6px}
   </style>
 </head>
 <body>
   <div id="canvas"><div id="stage"></div></div>
 
-  <div class="hint">
-    (-: i am interactive - please drag, zoom, resize and play with me :-)
-  </div>
+  <div class="hint">(-: i am interactive - please drag, zoom, resize and play with me :-)</div>
 
 <script>
 (function(){
   /* ===== CONFIG ===== */
-  const COUNT = 23;                // ← แก้ให้ตรงจำนวนภาพจริง
+  const COUNT = 23;                 // ← แก้ให้ตรงจำนวนรูป
   const EXT   = 'png';
   const pathFor = i => `elements/frame-${i}.${EXT}`;
   const MIN_W = 60;
+  const BASE_W = 300;
 
   const canvas = document.getElementById('canvas');
   const stage  = document.getElementById('stage');
 
-  /* ===== ใส่รูปทั้งหมดลงแคนวาส ===== */
+  /* ===== Load images ===== */
   const saved = JSON.parse(localStorage.getItem('canvas_positions_v1')||'{}');
-  const COLS=6, GAP=140, START_X=120, START_Y=120, BASE_W=300;
+  const COLS=6, GAP=140, START_X=120, START_Y=120;
 
   for(let i=1;i<=COUNT;i++){
     const img = document.createElement('img');
     img.src = pathFor(i);
     img.alt = `frame-${i}`;
-    img.className = 'draggable entrance';   // ใช้คลาสสำหรับ entrance
+    img.className = 'draggable entrance';
     img.dataset.id = `frame-${i}`;
     img.decoding = 'async';
     img.loading  = 'lazy';
@@ -133,178 +121,230 @@
       img.style.width = BASE_W + 'px';
     }
 
-    // random delay ผ่าน style แต่ไม่แตะ opacity
-    const baseDelay = (i-1) * 0.04;
-    const jitter    = Math.random() * 0.18;
-    img.style.animationDelay = (baseDelay + jitter).toFixed(2) + 's';
-
-    // ลบ class หลังเล่นเสร็จ เพื่อไม่ให้ไปทับ hover bounce
-    img.addEventListener('animationend', (ev)=>{
-      if(ev.animationName === 'popIn'){
-        img.classList.remove('entrance');
-        img.style.animationDelay = '';
-      }
+    // random delay
+    const baseDelay=(i-1)*0.04, jitter=Math.random()*0.18;
+    img.style.animationDelay=(baseDelay+jitter).toFixed(2)+'s';
+    img.addEventListener('animationend', e=>{
+      if(e.animationName==='popIn'){ img.classList.remove('entrance'); img.style.animationDelay=''; }
     });
 
     stage.appendChild(img);
   }
 
-  /* ===== PAN / ZOOM ===== */
-  let scale=0.5, minScale=.3, maxScale=3, tx=0, ty=0;
-  const apply=()=> stage.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
+  /* ===== View transform (pan/zoom) ===== */
+  let scale = 0.5, minScale = 0.3, maxScale = 3, tx = 0, ty = 0;
+  const apply = () => stage.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
 
-  function centerStage() {
-    const vw = canvas.clientWidth, vh = canvas.clientHeight;
-    const sw = stage.offsetWidth * scale, sh = stage.offsetHeight * scale;
-    tx = (vw - sw) / 2; ty = (vh - sh) / 2; apply();
+  function centerStage(){
+    const vw=canvas.clientWidth, vh=canvas.clientHeight;
+    const sw=stage.offsetWidth*scale, sh=stage.offsetHeight*scale;
+    tx=(vw-sw)/2; ty=(vh-sh)/2; apply();
   }
+  window.addEventListener('resize', centerStage);
+  requestAnimationFrame(centerStage);
 
-  // Pan (พื้นที่ว่าง)
-  let panning=false,sx=0,sy=0,stx=0,sty=0;
-  canvas.addEventListener('mousedown',e=>{
-    if(e.target!==canvas) return;
-    clearSelection();
-    panning=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty;
-  });
-  window.addEventListener('mousemove',e=>{
-    if(!panning) return;
-    tx=stx+(e.clientX-sx); ty=sty+(e.clientY-sy); apply();
-  });
-  window.addEventListener('mouseup',()=>panning=false);
-
-  // Zoom (Ctrl/Cmd + wheel)
-  canvas.addEventListener('wheel',e=>{
-    const zooming = e.ctrlKey || e.metaKey; if(!zooming) return;
+  // Desktop zoom (ctrl/cmd + wheel)
+  canvas.addEventListener('wheel', e=>{
+    const zooming = e.ctrlKey || e.metaKey;
+    if(!zooming) return;
     e.preventDefault();
     const r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
-    const wx=(cx-tx)/scale, wy=(cy-ty)/scale;
-    const factor=Math.exp(-e.deltaY*0.0018);
-    const ns=Math.max(minScale, Math.min(maxScale, scale*factor));
-    tx=cx-wx*ns; ty=cy-wy*ns; scale=ns; apply();
+    zoomAt(cx, cy, Math.exp(-e.deltaY*0.0018));
   }, {passive:false});
 
-  // Double click = reset view
-  canvas.addEventListener('dblclick',e=>{ if(e.target!==canvas) return; scale=0.5; centerStage(); });
-
-  /* ===== DRAG / SELECT / RESIZE ===== */
-  let active=null, startX=0, startY=0, ox=0, oy=0;
-
-  stage.addEventListener('mousedown',e=>{
-    const el=e.target.closest('.draggable'); 
-    if(!el) return;
-    select(el);
-    if(e.target.classList.contains('handle')) return; // ไปโหมด resize แทน
-    active=el;
-    const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
-    startX=wx; startY=wy; ox=parseFloat(el.style.left)||0; oy=parseFloat(el.style.top)||0;
-    window.addEventListener('mousemove',drag); window.addEventListener('mouseup',endDrag);
+  // Double-tap/double-click to reset
+  let lastTap=0;
+  canvas.addEventListener('pointerdown', e=>{
+    if(e.pointerType!=='mouse'){ // mobile double-tap
+      const t=Date.now();
+      if(t-lastTap<300 && e.target===canvas){ scale=0.5; centerStage(); }
+      lastTap=t;
+    }
   });
 
-  function drag(e){ 
-    if(!active) return; e.preventDefault();
-    const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
-    active.style.left=(ox + (wx-startX))+'px';
-    active.style.top =(oy + (wy-startY))+'px';
-    updateSelectionBox();
-  }
-  function endDrag(){ 
-    persist(); active=null;
-    window.removeEventListener('mousemove',drag); window.removeEventListener('mouseup',endDrag);
+  function zoomAt(cx, cy, factor){
+    const wx=(cx-tx)/scale, wy=(cy-ty)/scale;
+    const ns=Math.max(minScale, Math.min(maxScale, scale*factor));
+    tx=cx-wx*ns; ty=cy-wy*ns; scale=ns; apply();
   }
 
-  /* Selection + Resize */
-  let selBox=null, handles={}, selected=null;
-  function select(el){
-    if(selected === el) return;
-    selected = el;
-    ensureSelectionBox();
-    updateSelectionBox();
-  }
-  function clearSelection(){
-    selected = null;
-    if(selBox) selBox.style.display='none';
-  }
-  function ensureSelectionBox(){
-    if(selBox) { selBox.style.display='block'; return; }
-    selBox = document.createElement('div');
-    selBox.className = 'selection';
+  /* ===== Pointer Gestures (mobile + desktop unified) ===== */
+  const pointers = new Map(); // id -> {x,y,target}
+  let panning=false, startTX=0, startTY=0;
+  let dragging=null, dragStart={x:0,y:0,ox:0,oy:0};
+  let resizing=false, resizePos=null, rOrig={x:0,y:0,w:0,ratio:1}, pinchStartDist=0, pinchStartScale=1, pinchCenter={x:0,y:0};
+
+  // selection UI
+  let selBox=null, selected=null;
+  function ensureSelBox(){
+    if(selBox) return;
+    selBox=document.createElement('div');
+    selBox.className='selection';
     ['nw','ne','sw','se'].forEach(pos=>{
-      const h = document.createElement('div');
-      h.className = `handle ${pos}`;
-      h.dataset.pos = pos;
-      h.addEventListener('mousedown', startResize);
+      const h=document.createElement('div');
+      h.className=`handle ${pos}`; h.dataset.pos=pos;
+      h.addEventListener('pointerdown', startResizeHandle);
       selBox.appendChild(h);
-      handles[pos]=h;
     });
     stage.appendChild(selBox);
   }
-  function getRatio(el){
-    if(el.naturalWidth) return el.naturalHeight / el.naturalWidth;
-    const rect = el.getBoundingClientRect();
-    return rect.height/rect.width || 1;
+  function getRatio(el){ return el.naturalWidth ? el.naturalHeight/el.naturalWidth : (el.getBoundingClientRect().height/el.getBoundingClientRect().width || 1); }
+  function updateSelBox(){
+    if(!selected||!selBox) return;
+    const x=parseFloat(selected.style.left)||0;
+    const y=parseFloat(selected.style.top)||0;
+    const w=parseFloat(selected.style.width)||BASE_W;
+    const h=w*getRatio(selected);
+    selBox.style.left=x+'px'; selBox.style.top=y+'px'; selBox.style.width=w+'px'; selBox.style.height=h+'px';
+    selBox.style.display='block';
   }
-  function updateSelectionBox(){
-    if(!selected || !selBox) return;
-    const x = parseFloat(selected.style.left)||0;
-    const y = parseFloat(selected.style.top)||0;
-    const w = parseFloat(selected.style.width)||BASE_W;
-    const ratio = getRatio(selected);
-    const h = w * ratio;
-    selBox.style.left = x + 'px';
-    selBox.style.top  = y + 'px';
-    selBox.style.width  = w + 'px';
-    selBox.style.height = h + 'px';
-  }
+  function clearSelection(){ selected=null; if(selBox) selBox.style.display='none'; }
+  function select(el){ if(selected!==el){ ensureSelBox(); selected=el; updateSelBox(); } }
 
-  let resizing=false, resizePos=null, rStartX=0, rStartY=0, rOrig={x:0,y:0,w:0,ratio:1};
-  function startResize(e){
-    e.stopPropagation(); e.preventDefault();
+  // start resize from handle (works on touch)
+  function startResizeHandle(e){
+    e.stopPropagation();
     if(!selected) return;
-    resizing = true;
-    resizePos = e.currentTarget.dataset.pos;
-    rStartX = (e.clientX - tx) / scale;
-    rStartY = (e.clientY - ty) / scale;
-    rOrig.x = parseFloat(selected.style.left)||0;
-    rOrig.y = parseFloat(selected.style.top)||0;
-    rOrig.w = parseFloat(selected.style.width)||BASE_W;
-    rOrig.ratio = getRatio(selected);
-    window.addEventListener('mousemove',onResize);
-    window.addEventListener('mouseup',endResize);
+    resizing=true; selected.setPointerCapture(e.pointerId);
+    resizePos=e.currentTarget.dataset.pos;
+    rOrig.x=parseFloat(selected.style.left)||0;
+    rOrig.y=parseFloat(selected.style.top)||0;
+    rOrig.w=parseFloat(selected.style.width)||BASE_W;
+    rOrig.ratio=getRatio(selected);
+    // store initial pointer world-x
+    const wx=(e.clientX-tx)/scale;
+    selected.dataset._rx=wx;
   }
-  function onResize(e){
-    if(!resizing || !selected) return;
-    e.preventDefault();
-    const wx = (e.clientX - tx) / scale;
-    const dx = wx - rStartX;
-    let newW = rOrig.w;
-    let newX = rOrig.x;
-    let newY = rOrig.y;
 
-    if(resizePos === 'se'){ newW = rOrig.w + dx; }
-    else if(resizePos === 'ne'){ newW = rOrig.w + dx; newY = rOrig.y + ((rOrig.w*rOrig.ratio) - Math.max(MIN_W,newW)*rOrig.ratio); }
-    else if(resizePos === 'sw'){ newW = rOrig.w - dx; newX = rOrig.x + (rOrig.w - newW); }
-    else if(resizePos === 'nw'){ newW = rOrig.w - dx; newX = rOrig.x + (rOrig.w - newW); newY = rOrig.y + ((rOrig.w*rOrig.ratio) - Math.max(MIN_W,newW)*rOrig.ratio); }
+  function onResizePointer(e){
+    if(!resizing||!selected) return;
+    const wx=(e.clientX-tx)/scale;
+    const dx = wx - (+selected.dataset._rx);
+    let newW=rOrig.w, newX=rOrig.x, newY=rOrig.y;
 
-    newW = Math.max(MIN_W, newW);
-    selected.style.width = newW + 'px';
-    selected.style.left  = newX + 'px';
-    selected.style.top   = newY + 'px';
-    updateSelectionBox();
+    if(resizePos==='se'){ newW=rOrig.w+dx; }
+    else if(resizePos==='ne'){ newW=rOrig.w+dx; newY=rOrig.y+((rOrig.w*rOrig.ratio)-Math.max(MIN_W,newW)*rOrig.ratio); }
+    else if(resizePos==='sw'){ newW=rOrig.w-dx; newX=rOrig.x+(rOrig.w-newW); }
+    else if(resizePos==='nw'){ newW=rOrig.w-dx; newX=rOrig.x+(rOrig.w-newW); newY=rOrig.y+((rOrig.w*rOrig.ratio)-Math.max(MIN_W,newW)*rOrig.ratio); }
+
+    newW=Math.max(MIN_W,newW);
+    selected.style.width=newW+'px';
+    selected.style.left=newX+'px';
+    selected.style.top=newY+'px';
+    updateSelBox();
   }
-  function endResize(){
+
+  function endResizePointer(e){
     if(!resizing) return;
-    resizing = false;
-    window.removeEventListener('mousemove',onResize);
-    window.removeEventListener('mouseup',endResize);
+    resizing=false;
+    selected.releasePointerCapture(e.pointerId);
     persist();
   }
 
-  // คลิกพื้นที่ว่าง = ยกเลิกเลือก
-  stage.addEventListener('mousedown', (e)=>{
-    if(e.target === stage) clearSelection();
+  // pointer lifecycle
+  canvas.addEventListener('pointerdown', e=>{
+    // capture coordinates
+    pointers.set(e.pointerId, {x:e.clientX, y:e.clientY, target:e.target});
+    if(e.target.classList.contains('handle')) return; // handle ได้ pointerdown ของตัวเองแล้ว
+
+    // two-finger pinch (when 2 pointers active)
+    if(pointers.size===2){
+      const [a,b]=[...pointers.values()];
+      pinchStartDist = Math.hypot(a.x-b.x, a.y-b.y);
+      pinchStartScale = scale;
+      pinchCenter = { x:(a.x+b.x)/2, y:(a.y+b.y)/2 };
+      return;
+    }
+
+    // one pointer
+    if(e.target.classList.contains('draggable')){
+      // start drag element
+      dragging = e.target;
+      select(dragging);
+      dragging.setPointerCapture(e.pointerId);
+      const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
+      dragStart.x=wx; dragStart.y=wy;
+      dragStart.ox=parseFloat(dragging.style.left)||0;
+      dragStart.oy=parseFloat(dragging.style.top)||0;
+    }else if(e.target===canvas){
+      // start panning canvas
+      clearSelection();
+      panning=true; startTX=tx; startTY=ty;
+    }
+  }, {passive:false});
+
+  canvas.addEventListener('pointermove', e=>{
+    const p=pointers.get(e.pointerId); if(!p) return;
+    p.x=e.clientX; p.y=e.clientY;
+
+    // Pinch zoom when two pointers
+    if(pointers.size===2){
+      e.preventDefault();
+      const [a,b]=[...pointers.values()];
+      const dist=Math.hypot(a.x-b.x, a.y-b.y);
+      const factor = dist/pinchStartDist;
+      zoomAt(pinchCenter.x, pinchCenter.y, factor * (pinchStartScale/scale)); // keep relative
+      return;
+    }
+
+    // Drag element
+    if(dragging){
+      e.preventDefault();
+      const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
+      dragging.style.left = (dragStart.ox + (wx-dragStart.x))+'px';
+      dragging.style.top  = (dragStart.oy + (wy-dragStart.y))+'px';
+      updateSelBox();
+      return;
+    }
+
+    // Pan stage
+    if(panning){
+      e.preventDefault();
+      tx = startTX + (e.clientX - p.x + p.x - e.clientX); // no-op but keeps pattern
+    }
+  }, {passive:false});
+
+  // Separate move listener for panning using stored start
+  window.addEventListener('pointermove', e=>{
+    if(pointers.size===2) return; // pinch handled above
+    if(panning){
+      tx = startTX + (e.movementX);
+      ty = startTY + (e.movementY);
+      apply();
+    }
+    if(resizing) onResizePointer(e);
+  }, {passive:false});
+
+  window.addEventListener('pointerup', e=>{
+    pointers.delete(e.pointerId);
+    if(dragging){ dragging.releasePointerCapture?.(e.pointerId); dragging=null; persist(); }
+    if(panning){ startTX=tx; startTY=ty; panning=false; }
+    if(resizing) endResizePointer(e);
+  });
+  window.addEventListener('pointercancel', e=>{
+    pointers.delete(e.pointerId);
+    dragging=null; panning=false; if(resizing) endResizePointer(e);
   });
 
-  // Save layout
+  // start resize from handle (delegated)
+  function startResizeHandle(e){ startResize(e); }
+  function startResize(e){
+    e.stopPropagation();
+    const h = e.currentTarget;
+    if(!selected) return;
+    resizing=true; resizePos=h.dataset.pos;
+    selected.setPointerCapture(e.pointerId);
+    rOrig.x=parseFloat(selected.style.left)||0;
+    rOrig.y=parseFloat(selected.style.top)||0;
+    rOrig.w=parseFloat(selected.style.width)||BASE_W;
+    rOrig.ratio=getRatio(selected);
+    selected.dataset._rx=(e.clientX-tx)/scale;
+  }
+
+  // click on stage = clear
+  stage.addEventListener('pointerdown', (e)=>{ if(e.target===stage) clearSelection(); });
+
+  /* ===== Persist ===== */
   function persist(){
     const obj={};
     stage.querySelectorAll('.draggable').forEach(el=>{
@@ -316,10 +356,6 @@
     });
     localStorage.setItem('canvas_positions_v1', JSON.stringify(obj));
   }
-
-  // Center stage on load + resize
-  window.addEventListener('resize', centerStage);
-  requestAnimationFrame(centerStage);
 })();
 </script>
 </body>
