@@ -22,13 +22,16 @@
     .draggable{
       position:absolute; user-select:none; -webkit-user-drag:none; cursor:grab;
       filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));
-      transition: transform .2s ease;
+      transition: transform .2s ease; /* ใช้ตอนปกติ */
     }
     .draggable:active{ cursor:grabbing; }
 
-    /* hover bounce (กลับมาแล้ว) */
-    .draggable:hover { animation: bounce 0.6s; }
-    @keyframes bounce {
+    /* hover bounce — ปิด transition ระหว่างเล่น animation เพื่อไม่ให้หาย */
+    .draggable:hover{
+      animation: bounce 0.6s;
+      transition: none;
+    }
+    @keyframes bounce{
       0%   { transform: translateY(0) scale(1); }
       30%  { transform: translateY(-12px) scale(1.05); }
       50%  { transform: translateY(0) scale(0.98); }
@@ -43,14 +46,14 @@
       100% { opacity:1; transform: translateY(0)     scale(1); }
     }
 
-    /* hint playful (gradient + shimmer) */
+    /* hint playful (gradient + shimmer) — ฟอนต์สีดำ + โปร่ง 50% */
     .hint{
       position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
       background: linear-gradient(135deg, #FFE29A 0%, #FF9DE2 50%, #7AE1FF 100%);
       background-size: 200% 200%;
       animation: shimmer 10s ease-in-out infinite;
-      color:#fff;
-      opacity:.5;                 /* โปร่งแสง 50% */
+      color:#000;                 /* ← สีดำ */
+      opacity:.5;                 /* ← โปร่ง 50% */
       padding:10px 18px; border-radius:14px;
       font-size:14px; font-weight:600;
       box-shadow: var(--hintShadow); text-align:center;
@@ -65,7 +68,7 @@
 
     /* ==== Selection Frame (แบบ Figma/PS) ==== */
     .selection{
-      position:absolute; pointer-events:none; /* กรอบเองไม่รับคลิก (ยกเว้น handle) */
+      position:absolute; pointer-events:none;  /* กรอบไม่รับคลิก (ยกเว้น handle) */
       outline: 2px solid var(--sel);
       outline-offset: 0;
       border-radius: 6px;
