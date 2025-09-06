@@ -23,13 +23,14 @@
       position:absolute; user-select:none; -webkit-user-drag:none; cursor:grab;
       filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));
       transition: transform .2s ease; /* ใช้ตอนปกติ */
+      will-change: transform;
     }
     .draggable:active{ cursor:grabbing; }
 
-    /* hover bounce — ปิด transition ระหว่างเล่น animation เพื่อไม่ให้หาย */
+    /* hover bounce — เปิดใช้งานอีกครั้ง */
     .draggable:hover{
       animation: bounce 0.6s;
-      transition: none;
+      transition: none; /* ไม่ให้ transition มาทับตอนกำลังเด้ง */
     }
     @keyframes bounce{
       0%   { transform: translateY(0) scale(1); }
@@ -52,13 +53,13 @@
       background: linear-gradient(135deg, #FFE29A 0%, #FF9DE2 50%, #7AE1FF 100%);
       background-size: 200% 200%;
       animation: shimmer 10s ease-in-out infinite;
-      color:#000;                 /* ← สีดำ */
-      opacity:.5;                 /* ← โปร่ง 50% */
+      color:#000;                 /* ฟอนต์สีดำ */
+      opacity:.5;                 /* โปร่ง 50% */
       padding:10px 18px; border-radius:14px;
       font-size:14px; font-weight:600;
       box-shadow: var(--hintShadow); text-align:center;
       border:1px solid rgba(255,255,255,.6);
-      pointer-events:none;        /* ไม่บังการลาก */
+      pointer-events:none;
     }
     @keyframes shimmer {
       0% { background-position: 0% 50%; }
@@ -68,7 +69,7 @@
 
     /* ==== Selection Frame (แบบ Figma/PS) ==== */
     .selection{
-      position:absolute; pointer-events:none;  /* กรอบไม่รับคลิก (ยกเว้น handle) */
+      position:absolute; pointer-events:none;
       outline: 2px solid var(--sel);
       outline-offset: 0;
       border-radius: 6px;
@@ -134,6 +135,13 @@
     const jitter    = Math.random() * 0.18;
     img.style.opacity = '0';
     img.style.animation = `popIn 720ms cubic-bezier(.2,.8,.2,1) ${ (baseDelay + jitter).toFixed(2) }s both`;
+
+    // ✅ เคลียร์ inline animation หลังเล่นจบ เพื่อให้ hover override ได้
+    img.addEventListener('animationend', (ev)=>{
+      if(ev.animationName === 'popIn'){
+        img.style.animation = '';
+      }
+    });
 
     imgs.push(img);
     stage.appendChild(img);
@@ -234,7 +242,6 @@
   }
 
   function getRatio(el){
-    // อัตราส่วนภาพ (สูง/กว้าง)
     if(el.naturalWidth) return el.naturalHeight / el.naturalWidth;
     const rect = el.getBoundingClientRect();
     return rect.height/rect.width || 1;
@@ -244,7 +251,7 @@
     if(!selected || !selBox) return;
     const x = parseFloat(selected.style.left)||0;
     const y = parseFloat(selected.style.top)||0;
-    const w = parseFloat(selected.style.width)||BASE_W;
+    const w = parseFloat(selected.style.width)||300;
     const ratio = getRatio(selected);
     const h = w * ratio;
 
@@ -264,7 +271,7 @@
     rStartY = (e.clientY - ty) / scale;
     rOrig.x = parseFloat(selected.style.left)||0;
     rOrig.y = parseFloat(selected.style.top)||0;
-    rOrig.w = parseFloat(selected.style.width)||BASE_W;
+    rOrig.w = parseFloat(selected.style.width)||300;
     rOrig.ratio = getRatio(selected);
 
     window.addEventListener('mousemove',onResize);
@@ -275,7 +282,6 @@
     if(!resizing || !selected) return;
     e.preventDefault();
     const wx = (e.clientX - tx) / scale;
-    const wy = (e.clientY - ty) / scale;
     const dx = wx - rStartX;
 
     let newW = rOrig.w;
@@ -340,3 +346,4 @@
 </script>
 </body>
 </html>
+
