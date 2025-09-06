@@ -1,20 +1,20 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Helloo — Sa • Waddee • Ka</title>
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="style.css" />
+  <title>Helloo — Sa • Waddee • Ka</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <div id="canvas">
-    <div id="stage"></div>
+    <div id="stage" aria-label="playground"></div>
   </div>
 
   <!-- hint pill -->
-  <div id="hint">drag + zoom + resize + to play with me!</div>
-  <script src="./stagger-onload.js" defer></script>
-  <script src="script.js"></script>
+  <div class="hint" role="note">drag + zoom + resize + to play with me!</div>
 
+  <script src="./script.js"></script>
+  <script src="./stagger-onload.js"></script>
 </body>
 </html>
