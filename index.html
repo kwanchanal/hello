@@ -1,210 +1,79 @@
 <!doctype html>
-<html lang="th">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Canvas Playground — Drag • Pan • Zoom</title>
-  <meta name="description" content="Canvas-like page with PNG elements (frame-1.png ...), drag, pan, and zoom.">
-  <style>
-    :root{ --bgA:#d9f0ff; --bgB:#ffe7f7; --ring:rgba(0,0,0,.18); }
-    *{box-sizing:border-box}
-    html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto}
-    body{background:linear-gradient(135deg,var(--bgA),var(--bgB));}
-
-    /* Toolbar */
-    .toolbar{
-      position:fixed; left:16px; top:16px; z-index:10;
-      background:rgba(255,255,255,.75); backdrop-filter: blur(8px);
-      border:1px solid rgba(0,0,0,.08); border-radius:12px;
-      padding:8px 10px; display:flex; gap:10px; align-items:center;
-      box-shadow:0 10px 30px var(--ring)
-    }
-    .toolbar b{font-size:13px}
-    .pill{padding:4px 8px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:#fff;font-size:12px}
-
-    /* Canvas / Stage */
-    #canvas{ position:fixed; inset:0; overflow:hidden; touch-action:none; cursor:default; }
-    #stage{ position:absolute; left:0; top:0; transform-origin:0 0; width:3600px; height:2400px; }
-
-    /* Elements */
-    .draggable{
-      position:absolute; user-select:none; -webkit-user-drag:none; cursor:grab;
-      filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));
-      transition: box-shadow .2s ease;
-    }
-    .draggable:active{ cursor:grabbing; }
-
-    /* Hint */
-    .hint{
-      position:fixed; right:16px; bottom:16px; max-width:360px;
-      background:rgba(0,0,0,.55); color:#fff; padding:10px 12px; border-radius:12px;
-      font-size:13px; line-height:1.5
-    }
-  </style>
+  <title>Helloo — Sa • Waddee • Ka</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div class="toolbar">
-    <b>Canvas</b>
-    <span class="pill">ลากพื้นที่ว่าง = Pan</span>
-    <span class="pill">Ctrl/Cmd + ล้อเมาส์ = Zoom</span>
-    <span class="pill">Pinch 2 นิ้ว = Zoom (มือถือ)</span>
-    <span class="pill">ดับเบิลคลิกพื้นที่ว่าง = Reset</span>
+  <div id="canvas">
+    <div id="stage" aria-label="playground"></div>
   </div>
 
-  <div id="canvas"><div id="stage"></div></div>
+  <!-- hint pill -->
+  <div class="hint" role="note">drag + zoom + resize + to play with me!</div>
 
-  <div class="hint">
-    โหลดรูปอัตโนมัติจาก <code>/elements/frame-1.png … frame-23.png</code><br/>
-    ตำแหน่งถูกบันทึกใน Local Storage (ล้างได้ใน DevTools)
-  </div>
+  <!-- main interaction -->
+  <script src="./script.js"></script>
 
-<script>
-(function(){
-  /* ===== CONFIG ===== */
-  const COUNT = 23;                       // ← ปรับตามจำนวนรูปจริง
-  const EXT   = 'png';                    // ← นามสกุลไฟล์ (png)
-  const pathFor = i => `elements/frame-${i}.${EXT}`;
+  <!-- Entrance animation: cinematic, once, no flicker -->
+  <script>
+    (function () {
+      // เราจะ animate เฉพาะที่มีคลาส .entering (ที่ script.js ใส่มาให้)
+      const SELECTOR = '#stage > .entering, #stage img.entering, #stage svg.entering';
 
-  const canvas = document.getElementById('canvas');
-  const stage  = document.getElementById('stage');
+      // โทนเนิบ ๆ cinematic
+      const STAGGER  = 160;   // หน่วงทีละชิ้น (ms)
+      const DURATION = 1400;  // ระยะเวลา (ms)
+      const EASING   = 'cubic-bezier(.16,.84,.16,1)';
 
-  /* ===== ใส่รูปทั้งหมดลงแคนวาส ===== */
-  const saved = JSON.parse(localStorage.getItem('canvas_positions_v1')||'{}');
-  const COLS=6, GAP=140, START_X=120, START_Y=120, BASE_W=300;
+      function animateOnce(nodes){
+        nodes.forEach((el, i) => {
+          // กันซ้ำ
+          el.getAnimations?.().forEach(a => a.cancel());
 
-  for(let i=1;i<=COUNT;i++){
-    const img = document.createElement('img');
-    img.src = pathFor(i);
-    img.alt = `frame-${i}`;
-    img.className = 'draggable';
-    img.dataset.id = `frame-${i}`;
-    img.decoding = 'async';
-    img.loading  = 'lazy';
-    img.onerror = () => { // ช่วยดีบั๊กกรณีพิมพ์ชื่อผิด
-      console.warn('Image failed:', img.src);
-      img.style.outline = '2px dashed crimson';
-      img.title = `Not found: ${img.src}`;
-    };
+          const anim = el.animate(
+            [
+              // ค่าจุดเริ่มตรงกับ .entering ใน CSS
+              { opacity: 0, transform: 'translateY(48px) scale(0.92)' },
+              { opacity: 1, transform: 'translateY(0) scale(1)' }
+            ],
+            {
+              duration: DURATION,
+              delay: i * STAGGER,
+              easing: EASING,
+              fill: 'forwards',
+              composite: 'replace'
+            }
+          );
 
-    const keep = saved[img.dataset.id];
-    if(keep){
-      img.style.left  = keep.x + 'px';
-      img.style.top   = keep.y + 'px';
-      img.style.width = (keep.w || BASE_W) + 'px';
-    }else{
-      const col = (i-1) % COLS, row = Math.floor((i-1)/COLS);
-      img.style.left  = (START_X + col*(BASE_W + GAP*0.6))+'px';
-      img.style.top   = (START_Y  + row*(BASE_W*0.6 + GAP))+'px';
-      img.style.width = BASE_W + 'px';
-    }
-    stage.appendChild(img);
-  }
+          anim.addEventListener('finish', () => {
+            try {
+              anim.commitStyles();   // คงค่าปลายทาง
+              anim.cancel();         // แล้วล้าง animation timeline
+            } catch {}
+            el.classList.remove('entering'); // เอาคลาสซ่อนออก → ไม่มีแว็บ/กระพริบ
+          });
+        });
+      }
 
-  /* ===== PAN / ZOOM ทั้งผืน ===== */
-  let scale=1, minScale=.3, maxScale=3, tx=0, ty=0;
-  const apply=()=> stage.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
+      window.addEventListener('load', () => {
+        const nodes = Array.from(document.querySelectorAll(SELECTOR));
+        if (nodes.length) animateOnce(nodes);
 
-  // Pan ด้วยเมาส์ (ลากพื้นที่ว่าง)
-  let panning=false,sx=0,sy=0,stx=0,sty=0;
-  canvas.addEventListener('mousedown',e=>{
-    if(e.target!==canvas) return;
-    panning=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty;
-  });
-  window.addEventListener('mousemove',e=>{
-    if(!panning) return;
-    tx=stx+(e.clientX-sx); ty=sty+(e.clientY-sy); apply();
-  });
-  window.addEventListener('mouseup',()=>panning=false);
-
-  // Zoom ด้วยล้อเมาส์ + Ctrl/Cmd (รวม pinch trackpad ของ Mac)
-  canvas.addEventListener('wheel',e=>{
-    const zooming = e.ctrlKey || e.metaKey; if(!zooming) return;
-    e.preventDefault();
-    const r=canvas.getBoundingClientRect(), cx=e.clientX-r.left, cy=e.clientY-r.top;
-    const wx=(cx-tx)/scale, wy=(cy-ty)/scale;
-    const factor=Math.exp(-e.deltaY*0.0018);
-    const ns=Math.max(minScale, Math.min(maxScale, scale*factor));
-    tx=cx-wx*ns; ty=cy-wy*ns; scale=ns; apply();
-  }, {passive:false});
-
-  // Pinch 2 นิ้วบนมือถือ
-  let pinching=false, startDist=0, startScale=1, startMid=[0,0], startTx=0, startTy=0;
-  canvas.addEventListener('touchstart', e=>{
-    if(e.touches.length===2){
-      pinching=true;
-      const [t1,t2]=e.touches;
-      startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      startScale = scale;
-      startMid = [(t1.clientX+t2.clientX)/2, (t1.clientY+t2.clientY)/2];
-      startTx=tx; startTy=ty;
-    }
-  }, {passive:true});
-  canvas.addEventListener('touchmove', e=>{
-    if(!pinching || e.touches.length<2) return;
-    e.preventDefault();
-    const [t1,t2]=e.touches;
-    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-    let ns = startScale * (dist / startDist);
-    ns = Math.max(minScale, Math.min(maxScale, ns));
-
-    const r=canvas.getBoundingClientRect(), cx=startMid[0]-r.left, cy=startMid[1]-r.top;
-    const wx=(cx-startTx)/scale, wy=(cy-startTy)/scale;
-    tx = cx - wx*ns; ty = cy - wy*ns; scale = ns; apply();
-  }, {passive:false});
-  canvas.addEventListener('touchend', ()=>{ pinching=false; });
-
-  // Reset view
-  canvas.addEventListener('dblclick',e=>{ if(e.target!==canvas) return; scale=1; tx=0; ty=0; apply(); });
-
-  /* ===== DRAG ทีละรูป (ชดเชย scale) ===== */
-  let active=null, startX=0, startY=0, ox=0, oy=0;
-  stage.addEventListener('mousedown',e=>{
-    const el=e.target.closest('.draggable'); if(!el) return;
-    active=el;
-    const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
-    startX=wx; startY=wy; ox=parseFloat(el.style.left)||0; oy=parseFloat(el.style.top)||0;
-    window.addEventListener('mousemove',drag); window.addEventListener('mouseup',end);
-  });
-  function drag(e){ if(!active) return; e.preventDefault();
-    const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
-    active.style.left=(ox + (wx-startX))+'px';
-    active.style.top =(oy + (wy-startY))+'px';
-  }
-  function end(){ persist(); active=null;
-    window.removeEventListener('mousemove',drag); window.removeEventListener('mouseup',end);
-  }
-
-  // Touch drag (พื้นฐาน)
-  stage.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1) return; // ถ้าเป็น pinch ให้ระบบ pinch จัดการ
-    const t=e.touches[0]; const el=e.target.closest('.draggable'); if(!el) return;
-    active=el; const wx=(t.clientX-tx)/scale, wy=(t.clientY-ty)/scale;
-    startX=wx; startY=wy; ox=parseFloat(el.style.left)||0; oy=parseFloat(el.style.top)||0;
-  }, {passive:true});
-  stage.addEventListener('touchmove',e=>{
-    if(!active || e.touches.length!==1) return;
-    const t=e.touches[0];
-    const wx=(t.clientX-tx)/scale, wy=(t.clientY-ty)/scale;
-    active.style.left=(ox + (wx-startX))+'px';
-    active.style.top =(oy + (wy-startY))+'px';
-  }, {passive:false});
-  stage.addEventListener('touchend',()=>{ if(active){ persist(); active=null; } });
-
-  // Save layout
-  function persist(){
-    const obj={};
-    stage.querySelectorAll('.draggable').forEach(el=>{
-      obj[el.dataset.id] = {
-        x: parseFloat(el.style.left)||0,
-        y: parseFloat(el.style.top)||0,
-        w: parseFloat(el.style.width)||undefined
-      };
-    });
-    localStorage.setItem('canvas_positions_v1', JSON.stringify(obj));
-  }
-
-  apply();
-})();
-</script>
+        // ถ้า user แตะ/ลากก่อนจบ ให้ยกเลิก animation ของ element นั้น
+        document.addEventListener('pointerdown', (e) => {
+          const el = e.target.closest('#stage > *');
+          if (!el) return;
+          el.getAnimations?.().forEach(a => a.cancel());
+          el.classList.remove('entering');
+          // ตั้งค่าให้เป็นปลายทางทันที เพื่อไม่ชักกระพริบ
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0) scale(1)';
+        }, { capture: true });
+      }, { once: true });
+    })();
+  </script>
 </body>
 </html>
