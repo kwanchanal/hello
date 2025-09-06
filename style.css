@@ -98,26 +98,23 @@ html,body{
 .handle.se{ right:-8px; bottom:-8px; }
 
 /* hint pill ด้านล่าง */
-#hint{
+.hint {
   position: fixed;
-  left:50%;
-  bottom:18px;
+  bottom: 20px;
+  left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(90deg, var(--pill1), var(--pill2));
-  color:#111;                /* ตามที่ขอ: ฟอนต์สีดำ */
-  border-radius:22px;
-  padding:14px 18px;
-  font-weight:700;
-  font-size:16px;
-  line-height:1;
-  box-shadow: var(--shadow-lg);
-  border:1px solid rgba(255,255,255,.65);
-  backdrop-filter: blur(var(--blur));
-  -webkit-backdrop-filter: blur(var(--blur));
-  text-align:center;
-  white-space:nowrap;
-  opacity:.85;
-  pointer-events:none;       /* ไม่ให้ไปบังการลาก */
+  background: linear-gradient(90deg, #ff9a9e, #fad0c4, #fad0c4, #a18cd1, #fbc2eb);
+  background-size: 300% 300%;
+  animation: gradientShift 8s ease infinite;
+  padding: 10px 18px;
+  border-radius: 12px;
+  /* ลบ border ขาวออก */
+  font-family: sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: black;
+  opacity: 0.9;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
 }
 
 @media (max-width: 640px){
