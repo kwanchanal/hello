@@ -1,5 +1,5 @@
 // =========================
-// Canvas Playground — JS (Desktop fixed + Mobile random-looking)
+// Canvas Playground — JS (Desktop fixed + Mobile random EVERY load)
 // =========================
 
 // ---------- DESKTOP LAYOUT (คงที่ตามที่ให้มา) ----------
@@ -29,72 +29,43 @@ const desktopLayout = {
   "frame-23": { "x": -579.162,"y": 699.192,  "w": 300 }
 };
 
-// ---------- MOBILE LAYOUT: “สุ่มดูมั่วๆ” (deterministic) ----------
-/**
- * ใช้ PRNG แบบมี seed เพื่อให้ "สุ่มแต่คงที่" ทุกครั้งที่ผู้ใช้เปิด
- * (จะให้สุ่มใหม่จริงๆ ให้ใส่ ?shuffle ที่ URL)
- */
-function mulberry32(seed) {
-  return function() {
-    let t = seed += 0x6D2B79F5;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+// ---------- MOBILE LAYOUT: “สุ่มจริงทุกครั้ง” ----------
 function computeMobileLayoutRandom() {
-  // seed คงที่ เว้นแต่ใส่ ?shuffle
-  const q = new URLSearchParams(location.search);
-  const seed = q.has('shuffle') ? (Date.now() & 0xffffffff) : 0xBEEF2025;
-  const rand = mulberry32(seed);
+  // ใช้ Math.random() โดยตรง + เวลา เพื่อให้แตกต่างทุก reload
+  function rand() { return Math.random(); }
 
   const ids = Array.from({length:23}, (_,i)=>`frame-${i+1}`);
 
-  // ขนาดพื้นฐาน + สุ่มนิดหน่อย
-  const baseWMin = 210, baseWMax = 300;
+  const baseWMin = 210, baseWMax = 300;   // ช่วงความกว้าง
+  const minDist  = 250;                   // กันชนระหว่างรูป
+  const tries    = 600;                   // ความพยายามวางต่อรูป
 
-  // เราจะวางตำแหน่งแบบ radial (กระจายรอบๆ center) + กันชนขั้นต่ำ
-  const minDist = 250;          // ระยะกันชนระหว่างจุด (ยิ่งมากยิ่งเว้น)
-  const tries   = 600;          // จำนวนครั้งสูงสุดที่พยายามวางแต่ละชิ้น
+  // วงรีสำหรับสุ่มจุด (ศูนย์กลาง = 0,0 จะถูก center อีกชั้นตอน render)
+  const R_x = 750;                        // รัศมีแนวนอน
+  const R_y = 950;                        // รัศมีแนวตั้ง
 
-  // พื้นที่วงรีสำหรับสุ่ม (จะถูก center อีกทีตอน render)
-  // ปรับคร่าวๆ ให้เข้ากับมือถือแนวตั้ง
-  const R_x = 750;              // รัศมีแนวนอน
-  const R_y = 950;              // รัศมีแนวตั้ง
-
-  const placed = [];            // เก็บจุดที่วางแล้ว
+  const placed = [];
   const layout = {};
 
   function randomInEllipse() {
-    // มุมสุ่ม + radius แบบ bias ไปกลาง (sqrt)
     const theta = rand() * Math.PI * 2;
-    const r = Math.sqrt(rand()); // ทำให้กระจุกกลางมากขึ้น
-    const x = Math.cos(theta) * R_x * r;
-    const y = Math.sin(theta) * R_y * r;
-    return {x, y};
+    const r = Math.sqrt(rand());          // bias ให้กระจุกกลาง
+    return { x: Math.cos(theta) * R_x * r, y: Math.sin(theta) * R_y * r };
   }
-
   function farEnough(x, y) {
-    for (const p of placed) {
-      const dx = x - p.x;
-      const dy = y - p.y;
-      if (Math.hypot(dx, dy) < minDist) return false;
-    }
+    for (const p of placed) if (Math.hypot(x-p.x, y-p.y) < minDist) return false;
     return true;
   }
 
   ids.forEach((id) => {
     const w = baseWMin + rand() * (baseWMax - baseWMin);
     let pos = null;
-    for (let t = 0; t < tries; t++) {
+    for (let t=0; t<tries; t++) {
       const p = randomInEllipse();
       if (farEnough(p.x, p.y)) { pos = p; break; }
     }
-    // ถ้าเต็มที่แล้วยังชน ก็ยอมวางทับได้บ้าง
-    if (!pos) pos = randomInEllipse();
-
+    if (!pos) pos = randomInEllipse(); // ถ้าแน่นมาก ยอมซ้อนบ้างเล็กน้อย
     placed.push(pos);
-    // ศูนย์ (0,0) คือกลางเวที เราเลยไม่ต้องลบ/บวก offset อะไร
     layout[id] = { x: pos.x, y: pos.y, w };
   });
 
@@ -146,7 +117,7 @@ function applyTransform() {
 }
 applyTransform();
 
-// จัดให้ content อยู่กลางจอ
+// จัด content ให้อยู่กลางจอ
 function centerStageOnContent(){
   if (!els.length) return;
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
@@ -164,7 +135,7 @@ function centerStageOnContent(){
 }
 Promise.all(loadPromises).then(centerStageOnContent);
 
-// pointer helpers
+// ---------- Selection / Drag / Resize ----------
 const pointerMap = new Map();
 function getXY(e){ return {x:e.clientX, y:e.clientY}; }
 function pinchInfo(){
@@ -321,13 +292,12 @@ window.exportLayout = function(){
   return obj;
 };
 
-// Dev helper: ?mobile / ?desktop / ?shuffle
+// Dev helper: ?mobile / ?desktop (สุ่มมือถือทุกครั้งอยู่แล้ว)
 (function enforceByQuery(){
   const q=new URLSearchParams(location.search);
-  if(q.has('mobile') || q.has('desktop') || q.has('shuffle')){
+  if(q.has('mobile') || q.has('desktop')){
     const layout = q.has('desktop') ? desktopLayout : computeMobileLayoutRandom();
     applyLayout(layout);
     centerStageOnContent();
   }
 })();
-
