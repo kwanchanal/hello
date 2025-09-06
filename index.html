@@ -8,37 +8,48 @@
 </head>
 <body>
   <div id="canvas">
-    <!-- stage อยู่กึ่งกลางด้วย CSS -->
+    <!-- stage อยู่กึ่งกลางด้วย CSS (ดู style.css) -->
     <div id="stage" aria-label="playground"></div>
   </div>
 
   <!-- hint pill -->
   <div class="hint" role="note">drag + zoom + resize + to play with me!</div>
 
-  <!-- main interaction -->
+  <!-- main interaction (drag / resize / pan / zoom / persist) -->
   <script src="./script.js"></script>
 
-  <!-- inline animation -->
+  <!-- inline: stagger animation on page load (ไม่แตะ .draggable) -->
   <script>
     (function () {
       const SELECTORS = [
         '#stage > *:not(.draggable)',
         '#stage img:not(.draggable)',
-        '#stage svg:not(.draggable)'
+        '#stage svg:not(.draggable)',
+        '.elements img:not(.draggable)',
+        '.elements svg:not(.draggable)',
+        '.elements > *:not(.draggable)',
+        'main img:not(.draggable)',
+        'main svg:not(.draggable)'
       ];
-      const STAGGER = 90, DURATION = 600, EASING = 'cubic-bezier(.2,.75,.25,1.2)';
+
+      const STAGGER  = 90;   // หน่วงทีละชิ้น (ms)
+      const DURATION = 600;  // ระยะเวลาแต่ละชิ้น (ms)
+      const EASING   = 'cubic-bezier(.2,.75,.25,1.2)';
+
       function animateNodes(nodes){
         nodes.forEach((el, i) => {
           const anim = el.animate(
             [
               { opacity: 0, transform: 'translateY(20px) scale(.96)', filter: 'blur(1.5px)' },
-              { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' }
+              { opacity: 1, transform: 'translateY(0) scale(1)',      filter: 'blur(0)' }
             ],
-            { duration: DURATION, delay: i*STAGGER, easing: EASING, fill: 'none' }
+            { duration: DURATION, delay: i * STAGGER, easing: EASING, fill: 'none' }
           );
+          // คืน style เดิมหลังจบ เพื่อไม่ทับ transform จากสคริปต์หลัก
           anim.addEventListener('finish', () => anim.cancel());
         });
       }
+
       window.addEventListener('load', () => {
         const els = Array.from(document.querySelectorAll(SELECTORS.join(',')));
         if (els.length) animateNodes(els);
