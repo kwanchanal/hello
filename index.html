@@ -4,17 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Helloo — Sa • Waddee • Ka</title>
-  <meta name="description" content="Canvas-like page with draggable PNG elements, pan, zoom, and play.">
+  <meta name="description" content="Canvas-like page with draggable PNG elements, selection frame, resize handles, pan & zoom.">
   <style>
     :root{
       --blue:#81DBFC;   /* ฟ้า = center */
       --green:#E3F2BD;  /* เขียว = edge  */
+      --sel:#1e90ff;    /* สีกรอบเลือก */
+      --hintShadow: 0 6px 26px rgba(0,0,0,.18);
     }
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto}
-    body{
-      background: radial-gradient(circle at center, var(--blue) 0%, var(--blue) 35%, var(--green) 100%);
-    }
+    body{ background: radial-gradient(circle at center, var(--blue) 0%, var(--blue) 35%, var(--green) 100%); }
 
     #canvas{ position:fixed; inset:0; overflow:hidden; touch-action:none; cursor:default; }
     #stage{ position:absolute; left:0; top:0; transform-origin:0 0; width:3600px; height:2400px; }
@@ -26,11 +26,8 @@
     }
     .draggable:active{ cursor:grabbing; }
 
-    /* bounce effect */
-    .draggable:hover {
-      animation: bounce 0.6s;
-    }
-
+    /* hover bounce */
+    .draggable:hover { animation: bounce 0.6s; }
     @keyframes bounce {
       0%   { transform: translateY(0) scale(1); }
       30%  { transform: translateY(-12px) scale(1.05); }
@@ -39,35 +36,62 @@
       100% { transform: translateY(0) scale(1); }
     }
 
-    /* hint box */
-    .hint{
-      position:fixed;
-      bottom:20px; left:50%;
-      transform:translateX(-50%);
-      background:rgba(255,240,150,0.9);
-      color:#222;
-      padding:10px 18px;
-      border-radius:14px;
-      font-size:14px;
-      font-weight:500;
-      box-shadow:0 4px 20px rgba(0,0,0,.15);
-      text-align:center;
+    /* staged entrance */
+    @keyframes popIn {
+      0%   { opacity:0; transform: translateY(20px) scale(0.94); }
+      60%  { opacity:1; transform: translateY(-6px)  scale(1.03); }
+      100% { opacity:1; transform: translateY(0)     scale(1); }
     }
+
+    /* hint playful */
+    .hint{
+      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+      background: linear-gradient(135deg, #FFE29A 0%, #FF9DE2 50%, #7AE1FF 100%);
+      background-size: 200% 200%;
+      animation: shimmer 10s ease-in-out infinite;
+      color:#111; padding:10px 18px; border-radius:14px; font-size:14px; font-weight:600;
+      box-shadow: var(--hintShadow); text-align:center; border:1px solid rgba(255,255,255,.6);
+      pointer-events:none; /* ไม่ให้บังการลาก */
+    }
+    @keyframes shimmer {
+      0% { background-position: 0% 50%; }
+      50%{ background-position: 100% 50%; }
+      100%{background-position: 0% 50%; }
+    }
+
+    /* ==== Selection Frame (แบบ Figma/PS) ==== */
+    .selection{
+      position:absolute; pointer-events:none; /* กรอบเองไม่รับคลิก (ยกเว้น handle) */
+      outline: 2px solid var(--sel);
+      outline-offset: 0;
+      border-radius: 6px;
+    }
+    .handle{
+      position:absolute; width:12px; height:12px; border:2px solid #fff; background: var(--sel);
+      border-radius: 3px; box-shadow:0 0 0 1px rgba(0,0,0,.25);
+      pointer-events:auto; cursor:nwse-resize;
+    }
+    .handle.ne, .handle.sw{ cursor:nesw-resize; }
+    .handle.nw{ left:-6px;  top:-6px; }
+    .handle.ne{ right:-6px; top:-6px; }
+    .handle.sw{ left:-6px;  bottom:-6px; }
+    .handle.se{ right:-6px; bottom:-6px; }
   </style>
 </head>
 <body>
   <div id="canvas"><div id="stage"></div></div>
 
   <div class="hint">
-    an interactive website — feel free to pan, zoom, and play with me
+    i am an interactive website — feel free to drag, pan, zoom, and play with me :-)
   </div>
 
 <script>
 (function(){
   /* ===== CONFIG ===== */
-  const COUNT = 23; // ← แก้ให้ตรงกับจำนวนไฟล์รูปจริง
+  const COUNT = 23;                // ← แก้ให้ตรงจำนวนภาพจริง
   const EXT   = 'png';
   const pathFor = i => `elements/frame-${i}.${EXT}`;
+  const MIN_W = 60;                // ความกว้างต่ำสุดของรูปเวลา resize
 
   const canvas = document.getElementById('canvas');
   const stage  = document.getElementById('stage');
@@ -76,6 +100,7 @@
   const saved = JSON.parse(localStorage.getItem('canvas_positions_v1')||'{}');
   const COLS=6, GAP=140, START_X=120, START_Y=120, BASE_W=300;
 
+  const imgs = [];
   for(let i=1;i<=COUNT;i++){
     const img = document.createElement('img');
     img.src = pathFor(i);
@@ -96,25 +121,32 @@
       img.style.top   = (START_Y  + row*(BASE_W*0.6 + GAP))+'px';
       img.style.width = BASE_W + 'px';
     }
+
+    // staged entrance: random delay
+    const baseDelay = (i-1) * 0.04;
+    const jitter    = Math.random() * 0.18;
+    img.style.opacity = '0';
+    img.style.animation = `popIn 720ms cubic-bezier(.2,.8,.2,1) ${ (baseDelay + jitter).toFixed(2) }s both`;
+
+    imgs.push(img);
     stage.appendChild(img);
   }
 
-  /* ===== PAN / ZOOM ===== */
+  /* ===== PAN / ZOOM ของทั้งผืน ===== */
   let scale=0.5, minScale=.3, maxScale=3, tx=0, ty=0;
   const apply=()=> stage.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
 
   function centerStage() {
     const vw = canvas.clientWidth, vh = canvas.clientHeight;
     const sw = stage.offsetWidth * scale, sh = stage.offsetHeight * scale;
-    tx = (vw - sw) / 2;
-    ty = (vh - sh) / 2;
-    apply();
+    tx = (vw - sw) / 2; ty = (vh - sh) / 2; apply();
   }
 
   // Pan
   let panning=false,sx=0,sy=0,stx=0,sty=0;
   canvas.addEventListener('mousedown',e=>{
-    if(e.target!==canvas) return;
+    if(e.target!==canvas) return; // กดพื้นที่ว่างเท่านั้น
+    clearSelection();
     panning=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty;
   });
   window.addEventListener('mousemove',e=>{
@@ -123,7 +155,7 @@
   });
   window.addEventListener('mouseup',()=>panning=false);
 
-  // Zoom
+  // Zoom (Ctrl/Cmd + wheel)
   canvas.addEventListener('wheel',e=>{
     const zooming = e.ctrlKey || e.metaKey; if(!zooming) return;
     e.preventDefault();
@@ -134,26 +166,155 @@
     tx=cx-wx*ns; ty=cy-wy*ns; scale=ns; apply();
   }, {passive:false});
 
-  // Reset view
+  // Double click = reset view
   canvas.addEventListener('dblclick',e=>{ if(e.target!==canvas) return; scale=0.5; centerStage(); });
 
-  /* ===== DRAG ===== */
+  /* ===== DRAG รูป ===== */
   let active=null, startX=0, startY=0, ox=0, oy=0;
   stage.addEventListener('mousedown',e=>{
-    const el=e.target.closest('.draggable'); if(!el) return;
+    const el=e.target.closest('.draggable'); 
+    if(!el) return;
+    select(el); // คลิกแล้วเลือกก่อน
+
+    // เริ่มลาก (ถ้าไม่ได้กดที่ handle)
+    if(e.target.classList.contains('handle')) return; // ถ้ากดที่ handle จะไปโหมด resize
     active=el;
     const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
     startX=wx; startY=wy; ox=parseFloat(el.style.left)||0; oy=parseFloat(el.style.top)||0;
-    window.addEventListener('mousemove',drag); window.addEventListener('mouseup',end);
+    window.addEventListener('mousemove',drag); window.addEventListener('mouseup',endDrag);
   });
-  function drag(e){ if(!active) return; e.preventDefault();
+
+  function drag(e){ 
+    if(!active) return; e.preventDefault();
     const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
     active.style.left=(ox + (wx-startX))+'px';
     active.style.top =(oy + (wy-startY))+'px';
+    updateSelectionBox(); // ขยับกรอบตาม
   }
-  function end(){ persist(); active=null;
-    window.removeEventListener('mousemove',drag); window.removeEventListener('mouseup',end);
+  function endDrag(){ 
+    persist(); active=null;
+    window.removeEventListener('mousemove',drag); window.removeEventListener('mouseup',endDrag);
   }
+
+  /* ===== Selection + Resize ===== */
+  let selBox=null, handles={}; // กรอบและปุ่มจับมุม
+  function select(el){
+    if(selected === el) return;
+    selected = el;
+    ensureSelectionBox();
+    updateSelectionBox();
+  }
+  function clearSelection(){
+    selected = null;
+    if(selBox) selBox.style.display='none';
+  }
+
+  function ensureSelectionBox(){
+    if(selBox) { selBox.style.display='block'; return; }
+    selBox = document.createElement('div');
+    selBox.className = 'selection';
+    // 4 มุม
+    ['nw','ne','sw','se'].forEach(pos=>{
+      const h = document.createElement('div');
+      h.className = `handle ${pos}`;
+      h.dataset.pos = pos;
+      h.addEventListener('mousedown', startResize);
+      selBox.appendChild(h);
+      handles[pos]=h;
+    });
+    stage.appendChild(selBox);
+  }
+
+  function getRatio(el){
+    // อัตราส่วนภาพ (สูง/กว้าง)
+    if(el.naturalWidth) return el.naturalHeight / el.naturalWidth;
+    // fallback จากขนาดบนหน้าจอ
+    const rect = el.getBoundingClientRect();
+    return rect.height/rect.width || 1;
+  }
+
+  function updateSelectionBox(){
+    if(!selected || !selBox) return;
+    const x = parseFloat(selected.style.left)||0;
+    const y = parseFloat(selected.style.top)||0;
+    const w = parseFloat(selected.style.width)||BASE_W;
+    const ratio = getRatio(selected);
+    const h = w * ratio;
+
+    selBox.style.left = x + 'px';
+    selBox.style.top  = y + 'px';
+    selBox.style.width  = w + 'px';
+    selBox.style.height = h + 'px';
+  }
+
+  let selected=null;
+  let resizing=false, resizePos=null, rStartX=0, rStartY=0, rOrig={x:0,y:0,w:0,ratio:1};
+  function startResize(e){
+    e.stopPropagation(); e.preventDefault();
+    if(!selected) return;
+    resizing = true;
+    resizePos = e.currentTarget.dataset.pos;
+    rStartX = (e.clientX - tx) / scale;
+    rStartY = (e.clientY - ty) / scale;
+    rOrig.x = parseFloat(selected.style.left)||0;
+    rOrig.y = parseFloat(selected.style.top)||0;
+    rOrig.w = parseFloat(selected.style.width)||BASE_W;
+    rOrig.ratio = getRatio(selected);
+
+    window.addEventListener('mousemove',onResize);
+    window.addEventListener('mouseup',endResize);
+  }
+
+  function onResize(e){
+    if(!resizing || !selected) return;
+    e.preventDefault();
+    const wx = (e.clientX - tx) / scale;
+    const wy = (e.clientY - ty) / scale;
+    const dx = wx - rStartX;
+    const dy = wy - rStartY;
+
+    let newW = rOrig.w;
+    let newX = rOrig.x;
+    let newY = rOrig.y;
+
+    // ปรับตามทิศของมุมที่จับ (ใช้แกน X เป็นหลัก + รักษาอัตราส่วน)
+    if(resizePos === 'se'){ // ขยายขวาล่าง
+      newW = rOrig.w + dx;
+    } else if(resizePos === 'ne'){ // ขยายขวาบน
+      newW = rOrig.w + dx;
+      const newH = Math.max(MIN_W, newW) * rOrig.ratio;
+      newY = rOrig.y + ( (rOrig.w*rOrig.ratio) - newH );
+    } else if(resizePos === 'sw'){ // ขยายซ้ายล่าง
+      newW = rOrig.w - dx;
+      const deltaW = rOrig.w - newW;
+      newX = rOrig.x + deltaW;
+    } else if(resizePos === 'nw'){ // ขยายซ้ายบน
+      newW = rOrig.w - dx;
+      const deltaW = rOrig.w - newW;
+      newX = rOrig.x + deltaW;
+      const newH = Math.max(MIN_W, newW) * rOrig.ratio;
+      newY = rOrig.y + ( (rOrig.w*rOrig.ratio) - newH );
+    }
+
+    newW = Math.max(MIN_W, newW);
+    selected.style.width = newW + 'px';
+    selected.style.left  = newX + 'px';
+    selected.style.top   = newY + 'px';
+    updateSelectionBox();
+  }
+
+  function endResize(){
+    if(!resizing) return;
+    resizing = false;
+    window.removeEventListener('mousemove',onResize);
+    window.removeEventListener('mouseup',endResize);
+    persist();
+  }
+
+  // คลิกพื้นที่ว่าง = ยกเลิกเลือก
+  stage.addEventListener('mousedown', (e)=>{
+    if(e.target === stage) clearSelection();
+  });
 
   // Save layout
   function persist(){
@@ -175,3 +336,4 @@
 </script>
 </body>
 </html>
+
