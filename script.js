@@ -1,12 +1,8 @@
 // =========================
-// Canvas Playground — Full JS
-// - Desktop: fixed layout
-// - Mobile: random layout on every load
-// - Drag / Pan / Pinch-Zoom / Resize with handles
-// - Robust pointer handling (no "stuck to mouse")
+// Canvas Playground — Full JS (desktop anti-stuck)
 // =========================
 
-// ---------- DESKTOP LAYOUT (คงที่) ----------
+// ---------- Desktop layout (fixed) ----------
 const desktopLayout = {
   "frame-1":  { "x": 646.51,  "y": -281.271, "w": 300 },
   "frame-2":  { "x": 75.6457, "y": -184.501, "w": 300 },
@@ -33,28 +29,24 @@ const desktopLayout = {
   "frame-23": { "x": -579.162,"y": 699.192,  "w": 300 }
 };
 
-// ---------- MOBILE LAYOUT (สุ่มใหม่ทุกครั้ง) ----------
+// ---------- Mobile layout (random every load) ----------
 function computeMobileLayoutRandom() {
   const ids = Array.from({ length: 23 }, (_, i) => `frame-${i + 1}`);
   const baseWMin = 210, baseWMax = 300;
-  const minDist = 250;
-  const tries = 600;
+  const minDist = 250, tries = 600;
   const R_x = 750, R_y = 950;
 
   function rand() { return Math.random(); }
   function randomInEllipse() {
     const theta = rand() * Math.PI * 2;
-    const r = Math.sqrt(rand()); // bias เข้าใกล้กลาง
+    const r = Math.sqrt(rand());
     return { x: Math.cos(theta) * R_x * r, y: Math.sin(theta) * R_y * r };
   }
-
-  const placed = [];
-  const layout = {};
+  const placed = [], layout = {};
   function farEnough(x, y) {
     for (const p of placed) if (Math.hypot(x - p.x, y - p.y) < minDist) return false;
     return true;
   }
-
   ids.forEach(id => {
     const w = baseWMin + Math.random() * (baseWMax - baseWMin);
     let pos = null;
@@ -66,11 +58,10 @@ function computeMobileLayoutRandom() {
     placed.push(pos);
     layout[id] = { x: pos.x, y: pos.y, w };
   });
-
   return layout;
 }
 
-// ---------- เลือก layout ตามอุปกรณ์ ----------
+// ---------- Choose layout ----------
 const isMobile = window.matchMedia('(max-width: 640px)').matches;
 const initialLayout = isMobile ? computeMobileLayoutRandom() : desktopLayout;
 
@@ -85,6 +76,11 @@ for (let i = 1; i <= 23; i++) {
   el.src = `elements/frame-${i}.png`;
   el.className = 'draggable entrance';
   el.dataset.id = `frame-${i}`;
+
+  // 🔒 ปิด native drag & drop ของรูป (กัน “ติดเมาส์”)
+  el.draggable = false;
+  el.addEventListener('dragstart', e => e.preventDefault());
+
   stage.appendChild(el);
   els.push(el);
   loadPromises.push(new Promise(res => {
@@ -96,8 +92,7 @@ for (let i = 1; i <= 23; i++) {
 
 function applyLayout(layout) {
   els.forEach(el => {
-    const id = el.dataset.id;
-    const lay = layout[id];
+    const lay = layout[el.dataset.id];
     if (!lay) return;
     el.style.left  = lay.x + 'px';
     el.style.top   = lay.y + 'px';
@@ -108,42 +103,40 @@ function applyLayout(layout) {
 applyLayout(initialLayout);
 
 // ---------- Pan / Zoom ----------
-let scale   = isMobile ? 0.6 : 0.5;   // เริ่มซูม
+let scale   = isMobile ? 0.6 : 0.5;
 let originX = 0, originY = 0;
-
 function applyTransform() {
   stage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
 }
 applyTransform();
 
-// จัด content เข้ากลางจอ
 function centerStageOnContent() {
   if (!els.length) return;
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  els.forEach(el => {
-    const l = el.offsetLeft, t = el.offsetTop, w = el.offsetWidth, h = el.offsetHeight;
-    minX = Math.min(minX, l); minY = Math.min(minY, t);
-    maxX = Math.max(maxX, l + w); maxY = Math.max(maxY, t + h);
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  els.forEach(el=>{
+    const l=el.offsetLeft,t=el.offsetTop,w=el.offsetWidth,h=el.offsetHeight;
+    minX=Math.min(minX,l); minY=Math.min(minY,t);
+    maxX=Math.max(maxX,l+w); maxY=Math.max(maxY,t+h);
   });
-  const contentW = maxX - minX, contentH = maxY - minY;
-  const viewW = canvas.clientWidth, viewH = canvas.clientHeight;
-  const cx = minX + contentW / 2, cy = minY + contentH / 2;
-  originX = (viewW / 2) - (cx * scale);
-  originY = (viewH / 2) - (cy * scale);
+  const contentW=maxX-minX, contentH=maxY-minY;
+  const viewW=canvas.clientWidth, viewH=canvas.clientHeight;
+  const cx=minX+contentW/2, cy=minY+contentH/2;
+  originX=(viewW/2)-(cx*scale);
+  originY=(viewH/2)-(cy*scale);
   applyTransform();
 }
 Promise.all(loadPromises).then(centerStageOnContent);
 
 // =====================================================
-//               Pointer handling (robust)
+//               Robust Pointer Handling
 // =====================================================
 const pointerMap = new Map();
 function getXY(e){ return {x:e.clientX, y:e.clientY}; }
 function pinchInfo(){
   const pts=[...pointerMap.values()];
   if(pts.length<2) return null;
-  const [a,b]=pts; const cx=(a.x+b.x)/2, cy=(a.y+b.y)/2;
-  return {cx,cy,dist:Math.hypot(b.x-a.x,b.y-a.y)};
+  const [a,b]=pts;
+  return { cx:(a.x+b.x)/2, cy:(a.y+b.y)/2, dist:Math.hypot(b.x-a.x,b.y-a.y) };
 }
 
 let selection=null, activeDrag=null, dragOffset={x:0,y:0}, userInteracted=false;
@@ -157,7 +150,7 @@ function addSelection(el){
   ['nw','ne','sw','se'].forEach(pos=>{
     const h=document.createElement('div');
     h.className='handle '+pos;
-    h.addEventListener('pointerdown',e=>startResize(e,el,pos));
+    h.addEventListener('pointerdown',e=>startResize(e,el,pos), {passive:false});
     selection.appendChild(h);
   });
   stage.appendChild(selection);
@@ -165,8 +158,7 @@ function addSelection(el){
 }
 function updateSelection(el){
   if(!selection) return;
-  const s=stage.getBoundingClientRect();
-  const r=el.getBoundingClientRect();
+  const s=stage.getBoundingClientRect(), r=el.getBoundingClientRect();
   selection.style.left=(r.left-s.left)/scale+'px';
   selection.style.top =(r.top -s.top )/scale+'px';
   selection.style.width =r.width /scale+'px';
@@ -175,12 +167,14 @@ function updateSelection(el){
 function removeSelection(){ if(selection) selection.remove(); selection=null; }
 
 function startResize(e,el,corner){
-  e.stopPropagation(); userInteracted=true;
+  e.stopPropagation(); e.preventDefault(); userInteracted=true;
   try{ el.setPointerCapture(e.pointerId); }catch{}
   resizing={el,corner,startX:e.clientX,startY:e.clientY,startW:el.offsetWidth,startH:el.offsetHeight};
 }
+
 function onResizeMove(e){
-  if(!resizing) return; e.preventDefault();
+  if(!resizing) return;
+  e.preventDefault();
   const {el,corner,startX,startY,startW,startH}=resizing;
   const dx=(e.clientX-startX)/scale, dy=(e.clientY-startY)/scale;
   if(corner.includes('e')) el.style.width =(startW+dx)+'px';
@@ -188,8 +182,11 @@ function onResizeMove(e){
   updateSelection(el);
 }
 
-// ---- เคลียร์สถานะทุกอย่าง ----
+// เคลียร์สถานะทั้งหมดให้เกลี้ยง
 function endAllPointers(){
+  if(activeDrag){
+    try { activeDrag.releasePointerCapture && activeDrag.releasePointerCapture?.(); } catch {}
+  }
   resizing=null;
   activeDrag=null;
   canvas._pinch=null;
@@ -197,31 +194,34 @@ function endAllPointers(){
   pointerMap.clear();
 }
 
-// เริ่มกด
+// pointer down (เริ่มลากเมื่อแตะ element)
 canvas.addEventListener('pointerdown',(e)=>{
   pointerMap.set(e.pointerId, getXY(e));
+
   if(e.target.classList?.contains('draggable') && pointerMap.size===1){
     userInteracted=true;
     activeDrag=e.target;
     const r=activeDrag.getBoundingClientRect();
-    dragOffset.x=e.clientX-r.left; dragOffset.y=e.clientY-r.top;
+    dragOffset.x=e.clientX-r.left;
+    dragOffset.y=e.clientY-r.top;
     addSelection(activeDrag);
     try{ activeDrag.setPointerCapture(e.pointerId); }catch{}
   }
   e.preventDefault();
 },{passive:false});
 
-// ระหว่างขยับ (ฟังบน window เพื่อไม่พลาด)
+// pointer move (ฟังบน window เพื่อไม่ตกหล่น)
 window.addEventListener('pointermove',(e)=>{
   pointerMap.set(e.pointerId, getXY(e));
 
-  // ถ้าปุ่มเมาส์ไม่กดแล้วแต่ state ยังอยู่ → เคลียร์
-  if (e.buttons===0 && (activeDrag || resizing)) { endAllPointers(); return; }
+  // ถ้าปุ่มเมาส์ไม่ถูกกดแล้ว แต่ state ยังอยู่ → เคลียร์
+  if (e.buttons === 0 && (activeDrag || resizing)) { endAllPointers(); return; }
 
+  // กำลังรีไซซ์
   if(resizing){ onResizeMove(e); return; }
 
-  // pinch
-  if(pointerMap.size>=2){
+  // pinch zoom (สองนิ้ว)
+  if(pointerMap.size >= 2){
     const info=pinchInfo(); if(!info) return;
     if(!canvas._pinch){
       canvas._pinch={startDist:info.dist,startScale:scale,rect:stage.getBoundingClientRect(),cx:info.cx,cy:info.cy};
@@ -235,49 +235,64 @@ window.addEventListener('pointermove',(e)=>{
       originY=canvas._pinch.cy - my*scale;
       applyTransform(); if(activeDrag) updateSelection(activeDrag);
     }
+    e.preventDefault();
     return;
   }
 
-  // drag element
+  // drag element (นิ้วเดียว/เมาส์ซ้าย)
   if(activeDrag && pointerMap.size===1){
     const s=stage.getBoundingClientRect();
     const x=(e.clientX-dragOffset.x-s.left)/scale;
     const y=(e.clientY-dragOffset.y-s.top )/scale;
-    activeDrag.style.left=x+'px'; activeDrag.style.top=y+'px';
+    activeDrag.style.left=x+'px';
+    activeDrag.style.top =y+'px';
     updateSelection(activeDrag);
+    e.preventDefault();
     return;
   }
 
-  // pan canvas
+  // pan canvas (นิ้วเดียวบนพื้นหลัง)
   if(!activeDrag && pointerMap.size===1){
     const prev=canvas._panPrev||getXY(e);
-    originX+=(e.clientX-prev.x); originY+=(e.clientY-prev.y);
-    canvas._panPrev=getXY(e); applyTransform(); return;
+    originX += (e.clientX-prev.x);
+    originY += (e.clientY-prev.y);
+    canvas._panPrev=getXY(e);
+    applyTransform();
+    e.preventDefault();
+    return;
   }
-},{passive:true});
+},{passive:false});
 
-// ปล่อย/ยกเลิก/ออกนอก/สลับแท็บ → เคลียร์ให้ชัวร์
-window.addEventListener('pointerup',     ()=>endAllPointers(), {passive:true});
-window.addEventListener('pointercancel', ()=>endAllPointers(), {passive:true});
-window.addEventListener('pointerleave',  ()=>endAllPointers(), {passive:true});
-window.addEventListener('blur',          ()=>endAllPointers());
-document.addEventListener('visibilitychange', ()=>{ if(document.hidden) endAllPointers(); });
+// ปล่อย/ยกเลิก/ออกนอก/สลับแท็บ → เคลียร์ให้ชัวร์ (desktop-focused)
+function globalPointerEnd(){ endAllPointers(); }
+window.addEventListener('pointerup',        globalPointerEnd, {passive:true});
+window.addEventListener('pointercancel',    globalPointerEnd, {passive:true});
+window.addEventListener('pointerleave',     globalPointerEnd, {passive:true});
+window.addEventListener('pointerout',       globalPointerEnd, {passive:true});
+window.addEventListener('blur',             globalPointerEnd);
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) globalPointerEnd(); });
+
+// เพิ่ม mouse fallback เฉพาะ desktop (กันบาง environment ที่ pointerup หลุด)
+window.addEventListener('mouseup',      globalPointerEnd, {passive:true});
+window.addEventListener('mouseleave',   globalPointerEnd, {passive:true});
+window.addEventListener('contextmenu',  globalPointerEnd, {passive:true}); // คลิกขวา
 
 // เผื่อ element lose capture
-stage.addEventListener('lostpointercapture', ()=>endAllPointers());
+stage.addEventListener('lostpointercapture', globalPointerEnd);
 
-// ---------- wheel zoom (desktop) ----------
+// wheel zoom (desktop)
 canvas.addEventListener('wheel',(e)=>{
   e.preventDefault();
   const prev=scale, delta=-e.deltaY*0.001;
   scale=Math.min(Math.max(0.3, scale+delta), 3);
   const r=stage.getBoundingClientRect();
   const mx=(e.clientX-r.left)/prev, my=(e.clientY-r.top)/prev;
-  originX=e.clientX - mx*scale; originY=e.clientY - my*scale;
+  originX=e.clientX - mx*scale;
+  originY=e.clientY - my*scale;
   applyTransform();
 },{passive:false});
 
-// ---------- Breakpoint change (ถ้า user ยังไม่ขยับ ค่อยสลับเลย์เอาต์) ----------
+// auto switch layout at breakpoint (only if user hasn't interacted)
 const mq = window.matchMedia('(max-width: 640px)');
 mq.addEventListener?.('change', (ev)=>{
   if(userInteracted) return;
@@ -286,7 +301,7 @@ mq.addEventListener?.('change', (ev)=>{
   centerStageOnContent();
 });
 
-// ---------- Export layout (ใช้ใน Console: exportLayout()) ----------
+// export layout (Console: exportLayout())
 window.exportLayout = function(){
   const obj={};
   document.querySelectorAll('.draggable').forEach(el=>{
@@ -300,7 +315,7 @@ window.exportLayout = function(){
   return obj;
 };
 
-// ---------- Dev helper: ?mobile / ?desktop ----------
+// dev helper: ?mobile / ?desktop
 (function enforceByQuery(){
   const q=new URLSearchParams(location.search);
   if(q.has('mobile') || q.has('desktop')){
