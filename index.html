@@ -3,17 +3,197 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Canvas Playground</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Canvas Playground — Auto Import Elements</title>
+  <meta name="description" content="Canvas-like page with auto-imported SVGs, drag, pan, and zoom.">
+  <style>
+    :root{ --bgA:#d9f0ff; --bgB:#ffe7f7; --ring:rgba(0,0,0,.18); }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto}
+    body{background:linear-gradient(135deg,var(--bgA),var(--bgB));}
+
+    .toolbar{
+      position:fixed; left:16px; top:16px; z-index:10;
+      background:rgba(255,255,255,.75); backdrop-filter: blur(8px);
+      border:1px solid rgba(0,0,0,.08); border-radius:12px;
+      padding:8px 10px; display:flex; gap:10px; align-items:center;
+      box-shadow:0 10px 30px var(--ring)
+    }
+    .toolbar b{font-size:13px}
+    .pill{padding:4px 8px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:#fff;font-size:12px}
+
+    #canvas{ position:fixed; inset:0; overflow:hidden; touch-action:none; cursor:default; }
+    #stage{ position:absolute; left:0; top:0; transform-origin:0 0; width:3600px; height:2400px; }
+
+    .draggable{
+      position:absolute; user-select:none; -webkit-user-drag:none; cursor:grab;
+      filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));
+      transition: box-shadow .2s ease;
+    }
+    .draggable:active{ cursor:grabbing; }
+
+    .hint{
+      position:fixed; right:16px; bottom:16px; max-width:360px;
+      background:rgba(0,0,0,.55); color:#fff; padding:10px 12px; border-radius:12px;
+      font-size:13px; line-height:1.5
+    }
+  </style>
 </head>
 <body>
-  <div id="canvas">
-    <!-- ใส่ element รูป -->
-    <img src="elements/fish.png" class="draggable" alt="fish" />
-    <img src="elements/coral.svg" class="draggable" alt="coral" />
-    <img src="elements/star.png" class="draggable" alt="star" />
+  <div class="toolbar">
+    <b>Canvas</b>
+    <span class="pill">Drag empty = Pan</span>
+    <span class="pill">Ctrl/Cmd + Wheel = Zoom</span>
+    <span class="pill">Double-click empty = Reset</span>
   </div>
 
-  <script src="script.js"></script>
+  <div id="canvas"><div id="stage"></div></div>
+
+  <div class="hint">
+    รูปทั้งหมดจะถูกดึงจากโฟลเดอร์ <code>/elements</code> อัตโนมัติ (ตั้งชื่อแบบ <code>Frame 1.svg</code> …)  
+    ตำแหน่งถูกบันทึกในเบราว์เซอร์ (localStorage) — ล้างได้จาก DevTools → Application → Local Storage
+  </div>
+
+<script>
+(function(){
+  /* ---------- 1) สร้างรายการไฟล์อัตโนมัติ ---------- */
+  // ตั้งจำนวนไฟล์ที่มีจริงใน /elements (เช่น Frame 1.svg ... Frame 23.svg)
+  const NUM_FRAMES = 23;                 // ← แก้เลขนี้ให้ตรงกับไฟล์ของควัน
+  const PREFIX     = 'Frame ';           // ← ถ้าชื่อไม่ใช่ "Frame " ปรับได้
+  const EXT        = '.svg';             // ← ถ้าเป็น .png/.webp ก็เปลี่ยน
+
+  const files = [];
+  for(let i=1;i<=NUM_FRAMES;i++){
+    const name = `${PREFIX}${i}${EXT}`;
+    files.push({ id:`frame-${i}`, path:`elements/${encodeURIComponent(name)}` });
+  }
+
+  const canvas = document.getElementById('canvas');
+  const stage  = document.getElementById('stage');
+
+  /* ---------- 2) วางรูปลงแคนวาส (ตำแหน่งเริ่มต้นแบบ grid) ---------- */
+  const saved = JSON.parse(localStorage.getItem('canvas_positions_v1')||'{}');
+  const COLS = 6, GAP = 140, START_X = 120, START_Y = 120, BASE_W = 300;
+
+  files.forEach((f,idx)=>{
+    const img = document.createElement('img');
+    img.src = f.path;
+    img.alt = f.id;
+    img.className = 'draggable';
+    img.dataset.id = f.id;
+
+    // ถ้ามีตำแหน่งที่เคยเซฟไว้ ให้ใช้; ไม่งั้นจัดวางเป็นกริด
+    const savedItem = saved[f.id];
+    if(savedItem){
+      img.style.left  = savedItem.x + 'px';
+      img.style.top   = savedItem.y + 'px';
+      if(savedItem.w) img.style.width = savedItem.w + 'px';
+      else            img.style.width = BASE_W + 'px';
+    } else {
+      const col = idx % COLS;
+      const row = Math.floor(idx / COLS);
+      img.style.left  = (START_X + col * (BASE_W + GAP*0.6)) + 'px';
+      img.style.top   = (START_Y  + row * (BASE_W*0.6 + GAP)) + 'px';
+      img.style.width = BASE_W + 'px';
+    }
+
+    stage.appendChild(img);
+  });
+
+  /* ---------- 3) Pan/Zoom ทั้งผืน + Drag ทีละ element ---------- */
+  let scale=1, minScale=0.3, maxScale=3, tx=0, ty=0;
+  const apply = ()=> stage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+
+  // Pan (ลากพื้นที่ว่าง)
+  let panning=false, sx=0, sy=0, stx=0, sty=0;
+  canvas.addEventListener('mousedown', e=>{
+    if(e.target!==canvas) return;
+    panning=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty;
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!panning) return;
+    tx = stx + (e.clientX - sx);
+    ty = sty + (e.clientY - sy);
+    apply();
+  });
+  window.addEventListener('mouseup', ()=> panning=false);
+
+  // Zoom (Ctrl/Cmd + wheel หรือ pinch trackpad)
+  canvas.addEventListener('wheel', (e)=>{
+    const zooming = e.ctrlKey || e.metaKey;
+    if(!zooming) return;
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+    const wx = (cx - tx)/scale, wy = (cy - ty)/scale;
+    const factor = Math.exp(-e.deltaY * 0.0018);
+    const newScale = Math.max(minScale, Math.min(maxScale, scale*factor));
+    tx = cx - wx*newScale; ty = cy - wy*newScale; scale=newScale; apply();
+  }, {passive:false});
+
+  // Double-click พื้นที่ว่าง = reset view
+  canvas.addEventListener('dblclick', e=>{
+    if(e.target!==canvas) return;
+    scale=1; tx=0; ty=0; apply();
+  });
+
+  // Drag รูป (ชดเชย scale)
+  let active=null, startX=0, startY=0, origX=0, origY=0;
+  stage.addEventListener('mousedown', e=>{
+    const el = e.target.closest('.draggable'); if(!el) return;
+    active=el;
+    const wx=(e.clientX - tx)/scale, wy=(e.clientY - ty)/scale;
+    startX=wx; startY=wy;
+    origX=parseFloat(el.style.left)||0; origY=parseFloat(el.style.top)||0;
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('mouseup', endDrag);
+  });
+  function onDrag(e){
+    if(!active) return;
+    e.preventDefault();
+    const wx=(e.clientX - tx)/scale, wy=(e.clientY - ty)/scale;
+    active.style.left = (origX + (wx-startX)) + 'px';
+    active.style.top  = (origY + (wy-startY)) + 'px';
+  }
+  function endDrag(){
+    persist(); active=null;
+    window.removeEventListener('mousemove', onDrag);
+    window.removeEventListener('mouseup', endDrag);
+  }
+
+  // Touch drag (พื้นฐาน)
+  stage.addEventListener('touchstart', e=>{
+    const t=e.touches[0];
+    const el = e.target.closest('.draggable'); if(!el) return;
+    active=el;
+    const wx=(t.clientX - tx)/scale, wy=(t.clientY - ty)/scale;
+    startX=wx; startY=wy;
+    origX=parseFloat(el.style.left)||0; origY=parseFloat(el.style.top)||0;
+  }, {passive:true});
+  stage.addEventListener('touchmove', e=>{
+    if(!active) return;
+    const t=e.touches[0];
+    const wx=(t.clientX - tx)/scale, wy=(t.clientY - ty)/scale;
+    active.style.left = (origX + (wx-startX)) + 'px';
+    active.style.top  = (origY + (wy-startY)) + 'px';
+  }, {passive:false});
+  stage.addEventListener('touchend', ()=>{ persist(); active=null; });
+
+  // บันทึกตำแหน่งทั้งหมด
+  function persist(){
+    const obj={};
+    stage.querySelectorAll('.draggable').forEach(el=>{
+      const id=el.dataset.id;
+      obj[id] = {
+        x: parseFloat(el.style.left)||0,
+        y: parseFloat(el.style.top)||0,
+        w: parseFloat(el.style.width)||undefined
+      };
+    });
+    localStorage.setItem('canvas_positions_v1', JSON.stringify(obj));
+  }
+
+  apply();
+})();
+</script>
 </body>
 </html>
