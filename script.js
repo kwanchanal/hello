@@ -6,7 +6,8 @@
 // - Pan background + Wheel zoom (desktop)
 // - Pinch zoom (touch)
 // - Hover bounce + grab/grabbing cursor
-// - Center on content at startup  ✅
+// - Stage กึ่งกลางด้วย CSS (ไม่ต้องคำนวณศูนย์กลางใน JS อีก)
+// - ยกเลิก entrance animation ของชิ้นที่ถูกลากทันที ✅
 // =====================================================
 
 const canvas = document.getElementById('canvas');
@@ -79,7 +80,6 @@ const saveLayout = (()=>{let t=null;return()=>{clearTimeout(t);t=setTimeout(save
 
 // ---------- Build DOM ----------
 const els = [];
-const loadPromises = [];
 for (let i = 1; i <= IMAGE_COUNT; i++) {
   const el = document.createElement('img');
   el.src = `elements/frame-${i}.png`;
@@ -89,11 +89,6 @@ for (let i = 1; i <= IMAGE_COUNT; i++) {
   el.addEventListener('dragstart', e => e.preventDefault());
   stage.appendChild(el);
   els.push(el);
-  loadPromises.push(new Promise(res => {
-    if (el.complete) return res();
-    el.onload = () => res();
-    el.onerror = () => res();
-  }));
 }
 
 // choose initial layout & apply
@@ -119,29 +114,6 @@ function applyTransform() {
   stage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
 }
 applyTransform();
-
-// center on content (แก้ปัญหา “เบ้ซ้าย”)
-function centerStageOnContent() {
-  if (!els.length) return;
-  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
-  els.forEach(el=>{
-    const l=el.offsetLeft,t=el.offsetTop,w=el.offsetWidth,h=el.offsetHeight;
-    minX=Math.min(minX,l); minY=Math.min(minY,t);
-    maxX=Math.max(maxX,l+w); maxY=Math.max(maxY,t+h);
-  });
-  const contentW=maxX-minX, contentH=maxY-minY;
-  const viewW=canvas.clientWidth, viewH=canvas.clientHeight;
-  const cx=minX+contentW/2, cy=minY+contentH/2;
-  originX=(viewW/2)-(cx*scale);
-  originY=(viewH/2)-(cy*scale);
-  applyTransform();
-}
-
-// รอให้รูปโหลดแล้วค่อย center (กันกระพริบ)
-Promise.all(loadPromises).then(() => {
-  centerStageOnContent();
-  if (!IS_MOBILE && !Object.keys(saved).length) saveLayoutNow();
-});
 
 // wheel zoom (desktop)
 canvas.addEventListener('wheel', (e) => {
@@ -217,6 +189,10 @@ function stageLocalXY(clientX, clientY){
 stage.addEventListener('pointerdown', e => {
   const el = e.target.closest('img.draggable');
   if (!el) { hideSelection(); return; }
+
+  // ✅ ยกเลิก entrance animation ของ element นี้ทันทีเพื่อกันทับ transform
+  el.getAnimations?.().forEach(a => a.cancel());
+
   active = el;
   const r = el.getBoundingClientRect();
   offsetX = e.clientX - r.left;
@@ -250,10 +226,10 @@ function onResizeMove(e){
   const {el,pos,startX,startY,startW,startH,startL,startT}=resizing;
   let dx=(e.clientX-startX)/scale, dy=(e.clientY-startY)/scale;
   let newW=startW,newH=startH,newL=startL,newT=startT;
-  if(pos.includes('e')) newW=startW+dx;
-  if(pos.includes('s')) newH=startH+dy;
-  if(pos.includes('w')){ newW=startW-dx; newL=startL+dx; }
-  if(pos.includes('n')){ newH=startH-dy; newT=startT+dy; }
+  if(pos.includes("e")) newW=startW+dx;
+  if(pos.includes("s")) newH=startH+dy;
+  if(pos.includes("w")){ newW=startW-dx; newL=startL+dx; }
+  if(pos.includes("n")){ newH=startH-dy; newT=startT+dy; }
   newW=Math.max(40,newW); newH=Math.max(40,newH);
   el.style.left=newL+'px'; el.style.top=newT+'px'; el.style.width=newW+'px'; el.style.height=newH+'px';
   updateSelection(el);
