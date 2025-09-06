@@ -57,4 +57,89 @@ function computeMobileLayoutRandom() {
   }
 
   ids.forEach(id => {
-    const w = ba
+    const w = baseWMin + Math.random() * (baseWMax - baseWMin);
+    let pos = null;
+    for (let t = 0; t < tries; t++) {
+      const p = randomInEllipse();
+      if (farEnough(p.x, p.y)) { pos = p; break; }
+    }
+    if (!pos) pos = randomInEllipse();
+    placed.push(pos);
+    layout[id] = { x: pos.x, y: pos.y, w };
+  });
+  return layout;
+}
+
+// ---------- Persistence (desktop only unless toggled) ----------
+function loadSavedLayout() {
+  if (IS_MOBILE && !PERSIST_ON_MOBILE) return {};
+  try { return JSON.parse(localStorage.getItem(PERSIST_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveLayoutNow() {
+  if (IS_MOBILE && !PERSIST_ON_MOBILE) return; // skip on mobile
+  const obj = {};
+  stage.querySelectorAll('.draggable').forEach(el => {
+    obj[el.dataset.id] = {
+      x: parseFloat(el.style.left) || 0,
+      y: parseFloat(el.style.top)  || 0,
+      w: parseFloat(el.style.width) || 0,
+      h: parseFloat(el.style.height) || 0
+    };
+  });
+  try { localStorage.setItem(PERSIST_KEY, JSON.stringify(obj)); } catch {}
+}
+const saveLayout = (() => { let t=null; return () => { clearTimeout(t); t=setTimeout(saveLayoutNow,120); }; })();
+
+// ---------- DOM ----------
+const canvas = document.getElementById('canvas');
+const stage  = document.getElementById('stage');
+if (!canvas || !stage) throw new Error('Missing #canvas or #stage');
+
+// inject minimal CSS (hover bounce + cursor + selection)
+(function injectCSS(){
+  const css = `
+    #stage .draggable{ position:absolute; cursor:grab; user-select:none; -webkit-user-drag:none; transform-origin:center; }
+    #stage .draggable:active{ cursor:grabbing; }
+    @keyframes kw_bounce{ 0%{transform:scale(.98)} 50%{transform:scale(1.04)} 100%{transform:scale(1)} }
+    .hover-bounce:hover{ animation: kw_bounce .8s cubic-bezier(.2,.75,.25,1.2); }
+
+    .kw-selection{ position:absolute; border:2px dashed rgba(0,0,0,.35); border-radius:10px; pointer-events:none; }
+    .kw-handle{ position:absolute; width:12px;height:12px;border-radius:50%; background:#fff; border:1px solid rgba(0,0,0,.35); box-shadow:0 1px 3px rgba(0,0,0,.25); pointer-events:all; }
+    .kw-handle[data-pos="nw"]{ left:-6px; top:-6px; cursor:nwse-resize; }
+    .kw-handle[data-pos="ne"]{ right:-6px; top:-6px; cursor:nesw-resize; }
+    .kw-handle[data-pos="sw"]{ left:-6px; bottom:-6px; cursor:nesw-resize; }
+    .kw-handle[data-pos="se"]{ right:-6px; bottom:-6px; cursor:nwse-resize; }
+  `;
+  const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
+})();
+
+// build elements
+const els = [];
+const loadPromises = [];
+for (let i = 1; i <= IMAGE_COUNT; i++) {
+  const el = document.createElement('img');
+  el.src = `elements/frame-${i}.png`;
+  el.className = 'draggable hover-bounce';
+  el.dataset.id = `frame-${i}`;
+  el.draggable = false;
+  el.addEventListener('dragstart', e => e.preventDefault());
+  stage.appendChild(el);
+  els.push(el);
+  loadPromises.push(new Promise(res => {
+    if (el.complete) return res();
+    el.onload = () => res();
+    el.onerror = () => res();
+  }));
+}
+
+// choose initial layout
+const saved = loadSavedLayout();
+const initialLayout =
+  (Object.keys(saved).length ? saved : (IS_MOBILE ? computeMobileLayoutRandom() : desktopLayout));
+
+function applyLayout(layout) {
+  els.forEach(el => {
+    const lay = layout[el.dataset.id];
+    if (!lay) return;
+    el.style.le
