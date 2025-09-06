@@ -1,5 +1,5 @@
 // =========================
-// Canvas Playground — Full JS (Canvas-level pointer capture)
+// Canvas Playground — Full JS (fixed pan logic + anti-stuck)
 // =========================
 
 // ---------- Desktop layout (fixed) ----------
@@ -39,7 +39,7 @@ function computeMobileLayoutRandom() {
   function rand() { return Math.random(); }
   function randomInEllipse() {
     const theta = rand() * Math.PI * 2;
-    const r = Math.sqrt(rand()); // bias เข้ากลาง
+    const r = Math.sqrt(rand());
     return { x: Math.cos(theta) * R_x * r, y: Math.sin(theta) * R_y * r };
   }
   const placed = [], layout = {};
@@ -76,7 +76,7 @@ for (let i = 1; i <= 23; i++) {
   el.src = `elements/frame-${i}.png`;
   el.className = 'draggable entrance';
   el.dataset.id = `frame-${i}`;
-  el.draggable = false;                 // ปิด native drag ของรูป
+  el.draggable = false; // kill native image-drag
   el.addEventListener('dragstart', e => e.preventDefault());
   stage.appendChild(el);
   els.push(el);
@@ -125,7 +125,7 @@ function centerStageOnContent() {
 Promise.all(loadPromises).then(centerStageOnContent);
 
 // =====================================================
-//        Canvas-level pointer capture (anti-stuck)
+//        Pointer handling (no pan unless mouse down)
 // =====================================================
 const pointerMap = new Map();
 function getXY(e){ return {x:e.clientX, y:e.clientY}; }
@@ -138,8 +138,13 @@ function pinchInfo(){
 
 let selection=null, activeDrag=null, dragOffset={x:0,y:0}, userInteracted=false;
 let resizing=null;
-let dragPointerId=null; // <-- เก็บ pointerId ที่กำลังลากอยู่
+let dragPointerId=null;
 
+// NEW: explicit pan state
+let panActive = false;
+let panPointerId = null;
+
+// selection frame + handles
 function addSelection(el){
   removeSelection();
   selection=document.createElement('div');
@@ -167,7 +172,7 @@ function startResize(e,el,corner){
   e.stopPropagation(); e.preventDefault(); userInteracted=true;
   try{ canvas.setPointerCapture(e.pointerId); }catch{}
   resizing={el,corner,startX:e.clientX,startY:e.clientY,startW:el.offsetWidth,startH:el.offsetHeight};
-  dragPointerId = e.pointerId; // ใช้ตัวเดียวกับ capture
+  dragPointerId = e.pointerId;
 }
 
 function onResizeMove(e){
@@ -190,6 +195,8 @@ function endAllPointers(){
   dragPointerId=null;
   resizing=null;
   activeDrag=null;
+  panActive=false;
+  panPointerId=null;
   canvas._pinch=null;
   canvas._panPrev=null;
   pointerMap.clear();
@@ -197,37 +204,56 @@ function endAllPointers(){
 
 // เริ่มกด
 canvas.addEventListener('pointerdown',(e)=>{
+  // เก็บเฉพาะ pointer ที่เริ่มกดจริง
   pointerMap.set(e.pointerId, getXY(e));
 
-  // เริ่มลาก element → จับ capture ที่ canvas
-  if(e.target.classList?.contains('draggable') && pointerMap.size===1){
+  // คลิกบน element → drag
+  if(e.target.classList?.contains('draggable') && e.buttons===1){
     userInteracted=true;
     activeDrag=e.target;
     const r=activeDrag.getBoundingClientRect();
     dragOffset.x=e.clientX-r.left;
     dragOffset.y=e.clientY-r.top;
     addSelection(activeDrag);
-    try{ canvas.setPointerCapture(e.pointerId); }catch{} // 🔑 capture บน canvas
+    try{ canvas.setPointerCapture(e.pointerId); }catch{}
     dragPointerId = e.pointerId;
+    e.preventDefault();
+    return;
   }
-  e.preventDefault();
-},{passive:false});
 
-// ขยับ (ใช้ window เพื่อไม่ตกหล่น)
+  // ไม่ได้คลิก element → เริ่ม pan เฉพาะเมื่อกดปุ่มซ้ายจริง
+  if(e.buttons===1){
+    panActive = true;
+    panPointerId = e.pointerId;
+    canvas._panPrev = getXY(e);
+    try{ canvas.setPointerCapture(e.pointerId); }catch{}
+    dragPointerId = e.pointerId;
+    e.preventDefault();
+    return;
+  }
+}, {passive:false});
+
+// ขยับ (window)
 window.addEventListener('pointermove',(e)=>{
-  pointerMap.set(e.pointerId, getXY(e));
+  // อัปเดตเฉพาะ pointer ที่เรา track อยู่
+  if (pointerMap.has(e.pointerId)) {
+    pointerMap.set(e.pointerId, getXY(e));
+  }
 
-  // ถ้าปล่อยเมาส์แล้วแต่ state ยังอยู่ → เคลียร์
-  if (e.buttons === 0 && (activeDrag || resizing)) { endAllPointers(); return; }
+  // ถ้าปล่อยเมาส์แล้ว แต่ยังมี state → เคลียร์
+  if (e.pointerType === 'mouse' && e.buttons === 0 && (activeDrag || resizing || panActive)) {
+    endAllPointers(); return;
+  }
 
-  if(resizing){ onResizeMove(e); return; }
+  // resizing
+  if (resizing) { onResizeMove(e); return; }
 
-  // pinch zoom
-  if(pointerMap.size >= 2){
+  // pinch (touch ≥ 2 นิ้วเท่านั้น)
+  if (pointerMap.size >= 2 && e.pointerType !== 'mouse') {
     const info=pinchInfo(); if(!info) return;
     if(!canvas._pinch){
       canvas._pinch={startDist:info.dist,startScale:scale,rect:stage.getBoundingClientRect(),cx:info.cx,cy:info.cy};
-    }else{
+    } else {
       const k=info.dist/canvas._pinch.startDist;
       const newScale=Math.min(Math.max(0.3, canvas._pinch.startScale*k), 3);
       const prev=scale; scale=newScale;
@@ -241,8 +267,8 @@ window.addEventListener('pointermove',(e)=>{
     return;
   }
 
-  // drag element
-  if(activeDrag && pointerMap.size===1){
+  // drag element (ต้องกดปุ่มซ้ายอยู่)
+  if (activeDrag && e.buttons===1){
     const s=stage.getBoundingClientRect();
     const x=(e.clientX-dragOffset.x-s.left)/scale;
     const y=(e.clientY-dragOffset.y-s.top )/scale;
@@ -253,8 +279,8 @@ window.addEventListener('pointermove',(e)=>{
     return;
   }
 
-  // pan canvas
-  if(!activeDrag && pointerMap.size===1){
+  // pan canvas (ทำเฉพาะเมื่อ panActive และเป็น pointer เดิม และยังคงกดปุ่ม)
+  if (panActive && e.pointerId===panPointerId && e.buttons===1){
     const prev=canvas._panPrev||getXY(e);
     originX += (e.clientX-prev.x);
     originY += (e.clientY-prev.y);
@@ -263,13 +289,10 @@ window.addEventListener('pointermove',(e)=>{
     e.preventDefault();
     return;
   }
-},{passive:false});
+}, {passive:false});
 
-// ปล่อย / ยกเลิก / ออกนอก → เคลียร์
-function globalPointerEnd(e){
-  // เคลียร์เฉพาะ pointer ที่เป็นตัวลาก/รีไซซ์ หรือเคลียร์หมดถ้าไม่ทราบ
-  endAllPointers();
-}
+// ปล่อย / ยกเลิก / ออกนอก / blur → เคลียร์
+function globalPointerEnd(){ endAllPointers(); }
 window.addEventListener('pointerup',        globalPointerEnd, {passive:true});
 window.addEventListener('pointercancel',    globalPointerEnd, {passive:true});
 window.addEventListener('pointerleave',     globalPointerEnd, {passive:true});
@@ -279,15 +302,7 @@ window.addEventListener('mouseleave',       globalPointerEnd, {passive:true});
 window.addEventListener('contextmenu',      globalPointerEnd, {passive:true});
 window.addEventListener('blur',             globalPointerEnd);
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) globalPointerEnd(); });
-
-// ถ้า pointer capture ของ canvas หลุดด้วยเหตุผลใดๆ → เคลียร์
-canvas.addEventListener('lostpointercapture', (e)=> {
-  // ถ้า capture ที่หลุด เป็นตัวเดียวกับ dragPointerId เท่านั้นค่อยเคลียร์
-  // (ป้องกันเคลียร์ตอนเราไม่ได้ลากอยู่)
-  if (dragPointerId === null || e.pointerId === dragPointerId) {
-    endAllPointers();
-  }
-});
+canvas.addEventListener('lostpointercapture', globalPointerEnd);
 
 // wheel zoom (desktop)
 canvas.addEventListener('wheel',(e)=>{
