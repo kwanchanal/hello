@@ -6,14 +6,11 @@
   <title>Canvas Playground — Drag • Pan • Zoom</title>
   <meta name="description" content="Canvas-like page with PNG elements (frame-1.png ...), drag, pan, and zoom.">
   <style>
-    :root{ --ring:rgba(0,0,0,.18); }
+    :root{ --bgA:#d9f0ff; --bgB:#ffe7f7; --ring:rgba(0,0,0,.18); }
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto}
-    body{
-      background: radial-gradient(circle at center, #81DBFC 0%, #E3F2BD 100%);
-    }
+    body{background:linear-gradient(135deg,var(--bgA),var(--bgB));}
 
-    /* Toolbar */
     .toolbar{
       position:fixed; left:16px; top:16px; z-index:10;
       background:rgba(255,255,255,.75); backdrop-filter: blur(8px);
@@ -24,21 +21,16 @@
     .toolbar b{font-size:13px}
     .pill{padding:4px 8px;border-radius:999px;border:1px solid rgba(0,0,0,.12);background:#fff;font-size:12px}
 
-    /* Canvas / Stage */
     #canvas{ position:fixed; inset:0; overflow:hidden; touch-action:none; cursor:default; }
     #stage{ position:absolute; left:0; top:0; transform-origin:0 0; width:3600px; height:2400px; }
 
-    /* Elements */
     .draggable{
       position:absolute; user-select:none; -webkit-user-drag:none; cursor:grab;
       filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));
       transition: box-shadow .2s ease;
-      max-width: 300px;
-      max-height: 300px;
     }
     .draggable:active{ cursor:grabbing; }
 
-    /* Hint */
     .hint{
       position:fixed; right:16px; bottom:16px; max-width:360px;
       background:rgba(0,0,0,.55); color:#fff; padding:10px 12px; border-radius:12px;
@@ -65,8 +57,8 @@
 <script>
 (function(){
   /* ===== CONFIG ===== */
-  const COUNT = 23;                       // ← ปรับตามจำนวนรูปจริง
-  const EXT   = 'png';                    // ← นามสกุลไฟล์
+  const COUNT = 23;                       // ← แก้ให้ตรงกับจำนวนรูปจริง
+  const EXT   = 'png';                    // ← ใช้ png แทน svg
   const pathFor = i => `elements/frame-${i}.${EXT}`;
 
   const canvas = document.getElementById('canvas');
@@ -74,7 +66,7 @@
 
   /* ===== ใส่รูปทั้งหมดลงแคนวาส ===== */
   const saved = JSON.parse(localStorage.getItem('canvas_positions_v1')||'{}');
-  const COLS=6, GAP=140, START_X=120, START_Y=120, BASE_W=200;
+  const COLS=6, GAP=140, START_X=120, START_Y=120, BASE_W=300;
 
   for(let i=1;i<=COUNT;i++){
     const img = document.createElement('img');
@@ -84,11 +76,6 @@
     img.dataset.id = `frame-${i}`;
     img.decoding = 'async';
     img.loading  = 'lazy';
-    img.onerror = () => {
-      console.warn('Image failed:', img.src);
-      img.style.outline = '2px dashed crimson';
-      img.title = `Not found: ${img.src}`;
-    };
 
     const keep = saved[img.dataset.id];
     if(keep){
@@ -105,8 +92,16 @@
   }
 
   /* ===== PAN / ZOOM ===== */
-  let scale=1, minScale=.3, maxScale=3, tx=0, ty=0;
+  let scale=0.5, minScale=.3, maxScale=3, tx=0, ty=0;
   const apply=()=> stage.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
+
+  function centerStage() {
+    const vw = canvas.clientWidth, vh = canvas.clientHeight;
+    const sw = stage.offsetWidth * scale, sh = stage.offsetHeight * scale;
+    tx = (vw - sw) / 2;
+    ty = (vh - sh) / 2;
+    apply();
+  }
 
   // Pan
   let panning=false,sx=0,sy=0,stx=0,sty=0;
@@ -131,33 +126,8 @@
     tx=cx-wx*ns; ty=cy-wy*ns; scale=ns; apply();
   }, {passive:false});
 
-  // Pinch zoom
-  let pinching=false, startDist=0, startScale=1, startMid=[0,0], startTx=0, startTy=0;
-  canvas.addEventListener('touchstart', e=>{
-    if(e.touches.length===2){
-      pinching=true;
-      const [t1,t2]=e.touches;
-      startDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-      startScale = scale;
-      startMid = [(t1.clientX+t2.clientX)/2, (t1.clientY+t2.clientY)/2];
-      startTx=tx; startTy=ty;
-    }
-  }, {passive:true});
-  canvas.addEventListener('touchmove', e=>{
-    if(!pinching || e.touches.length<2) return;
-    e.preventDefault();
-    const [t1,t2]=e.touches;
-    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
-    let ns = startScale * (dist / startDist);
-    ns = Math.max(minScale, Math.min(maxScale, ns));
-    const r=canvas.getBoundingClientRect(), cx=startMid[0]-r.left, cy=startMid[1]-r.top;
-    const wx=(cx-startTx)/scale, wy=(cy-startTy)/scale;
-    tx = cx - wx*ns; ty = cy - wy*ns; scale = ns; apply();
-  }, {passive:false});
-  canvas.addEventListener('touchend', ()=>{ pinching=false; });
-
-  // Reset
-  canvas.addEventListener('dblclick',e=>{ if(e.target!==canvas) return; scale=1; tx=0; ty=0; apply(); });
+  // Reset view
+  canvas.addEventListener('dblclick',e=>{ if(e.target!==canvas) return; scale=0.5; centerStage(); });
 
   /* ===== DRAG ===== */
   let active=null, startX=0, startY=0, ox=0, oy=0;
@@ -177,23 +147,7 @@
     window.removeEventListener('mousemove',drag); window.removeEventListener('mouseup',end);
   }
 
-  // Touch drag
-  stage.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1) return;
-    const t=e.touches[0]; const el=e.target.closest('.draggable'); if(!el) return;
-    active=el; const wx=(t.clientX-tx)/scale, wy=(t.clientY-ty)/scale;
-    startX=wx; startY=wy; ox=parseFloat(el.style.left)||0; oy=parseFloat(el.style.top)||0;
-  }, {passive:true});
-  stage.addEventListener('touchmove',e=>{
-    if(!active || e.touches.length!==1) return;
-    const t=e.touches[0];
-    const wx=(t.clientX-tx)/scale, wy=(t.clientY-ty)/scale;
-    active.style.left=(ox + (wx-startX))+'px';
-    active.style.top =(oy + (wy-startY))+'px';
-  }, {passive:false});
-  stage.addEventListener('touchend',()=>{ if(active){ persist(); active=null; } });
-
-  // Save
+  // Save layout
   function persist(){
     const obj={};
     stage.querySelectorAll('.draggable').forEach(el=>{
@@ -206,7 +160,9 @@
     localStorage.setItem('canvas_positions_v1', JSON.stringify(obj));
   }
 
-  apply();
+  // Center stage on load + resize
+  window.addEventListener('resize', centerStage);
+  requestAnimationFrame(centerStage);
 })();
 </script>
 </body>
