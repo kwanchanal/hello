@@ -1,8 +1,8 @@
 // =========================
-// Canvas Playground — JS
+// Canvas Playground — JS (mobile friendly)
 // =========================
 
-// Layout เริ่มต้น
+// Layout เริ่มต้น (ล่าสุด)
 const initialLayout = {
   "frame-1":  { "x": 646.51,  "y": -281.271, "w": 300 },
   "frame-2":  { "x": 75.6457, "y": -184.501, "w": 300 },
@@ -32,7 +32,7 @@ const initialLayout = {
 const canvas = document.getElementById('canvas');
 const stage  = document.getElementById('stage');
 
-// โหลด element 1–23
+// ----- สร้าง elements -----
 const els = [];
 const loadPromises = [];
 
@@ -50,69 +50,44 @@ for (let i = 1; i <= 23; i++) {
   stage.appendChild(el);
   els.push(el);
 
-  // รอโหลดรูป
   loadPromises.push(new Promise(res => {
     if (el.complete) return res();
     el.onload = () => res();
-    el.onerror = () => res(); // error ก็ถือว่าโหลดเสร็จเพื่อไม่ค้าง
+    el.onerror = () => res();
   }));
 }
 
-// -------- Pan + Zoom ----------
-let scale = 0.5;          // 🔥 เริ่มซูมออก 50%
+// ----- State: pan/zoom -----
+let scale = 0.5;             // เริ่มซูมออก 50%
 let originX = 0, originY = 0;
-let isPanning = false, startX = 0, startY = 0;
 
-function updateStage() {
+function applyTransform() {
   stage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
 }
+applyTransform();
 
-canvas.addEventListener('mousedown', (e) => {
-  if (e.target === canvas || e.target === stage) {
-    isPanning = true;
-    startX = e.clientX - originX;
-    startY = e.clientY - originY;
-  }
-});
-canvas.addEventListener('mousemove', (e) => {
-  if (!isPanning) return;
-  originX = e.clientX - startX;
-  originY = e.clientY - startY;
-  updateStage();
-});
-canvas.addEventListener('mouseup',   () => isPanning = false);
-canvas.addEventListener('mouseleave',() => isPanning = false);
-canvas.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  const prev = scale;
-  const delta = -e.deltaY * 0.001;
-  scale = Math.min(Math.max(0.3, scale + delta), 3);
+// ----- Utilities -----
+const pointerMap = new Map();   // pointerId -> {x,y}
+function getPointerXY(e) { return { x: e.clientX, y: e.clientY }; }
 
-  // โฟกัสซูมตรงตำแหน่งเมาส์
-  const rect = stage.getBoundingClientRect();
-  const mx = (e.clientX - rect.left) / prev;
-  const my = (e.clientY - rect.top)  / prev;
-  originX = e.clientX - mx * scale;
-  originY = e.clientY - my * scale;
+// คิดศูนย์กลางและระยะของสองจุด (สำหรับ pinch)
+function pinchInfo() {
+  const pts = [...pointerMap.values()];
+  if (pts.length < 2) return null;
+  const [p1, p2] = pts;
+  const cx = (p1.x + p2.x) / 2;
+  const cy = (p1.y + p2.y) / 2;
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const dist = Math.hypot(dx, dy);
+  return { cx, cy, dist };
+}
 
-  updateStage();
-}, { passive:false });
-
-// ---------- Center on content (หลังรูปโหลดครบ) ----------
-Promise.all(loadPromises).then(() => {
-  centerStageOnContent();   // จัดกึ่งกลางครั้งแรก
-  updateStage();
-  // ถ้าชอบให้จัดใหม่เมื่อ resize จอ:
-  window.addEventListener('resize', () => {
-    // centerStageOnContent(); // uncomment ถ้าอยาก recenter auto ตอน resize
-  });
-});
-
+// จัดกึ่งกลางให้คอนเทนต์อยู่กลาง viewport
 function centerStageOnContent() {
   if (els.length === 0) return;
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
   els.forEach(el => {
     const left = el.offsetLeft;
     const top  = el.offsetTop;
@@ -126,55 +101,26 @@ function centerStageOnContent() {
 
   const contentW = maxX - minX;
   const contentH = maxY - minY;
-
   const viewW = canvas.clientWidth;
   const viewH = canvas.clientHeight;
 
-  // จุดศูนย์กลางของคอนเทนต์ (ในพิกัด stage)
   const contentCx = minX + contentW / 2;
   const contentCy = minY + contentH / 2;
 
-  // ต้องการให้จุดนี้ไปอยู่ที่กลาง viewport
   originX = (viewW / 2) - (contentCx * scale);
   originY = (viewH / 2) - (contentCy * scale);
+  applyTransform();
 }
 
-// ---------- Drag + Resize + Selection ----------
-let active = null;
-let offsetX = 0, offsetY = 0;
-let selection = null;
-
-stage.addEventListener('mousedown', (e) => {
-  const t = e.target;
-  if (t.classList.contains('draggable')) {
-    active = t;
-    const rect = active.getBoundingClientRect();
-    offsetX = e.clientX - rect.left;
-    offsetY = e.clientY - rect.top;
-
-    // add selection frame
-    addSelection(active);
-
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup',   endDrag);
-  }
+// หลังรูปโหลดครบ ค่อย center
+Promise.all(loadPromises).then(() => {
+  centerStageOnContent();
 });
 
-function drag(e) {
-  if (!active) return;
-  const stageRect = stage.getBoundingClientRect();
-  const x = (e.clientX - offsetX - stageRect.left) / scale;
-  const y = (e.clientY - offsetY - stageRect.top)  / scale;
-  active.style.left = x + 'px';
-  active.style.top  = y + 'px';
-  updateSelection(active);
-}
-
-function endDrag() {
-  active = null;
-  document.removeEventListener('mousemove', drag);
-  document.removeEventListener('mouseup',   endDrag);
-}
+// ----- Selection / Drag / Resize -----
+let selection = null;
+let activeDrag = null;
+let dragOffset = { x:0, y:0 };
 
 function addSelection(el) {
   removeSelection();
@@ -184,7 +130,7 @@ function addSelection(el) {
   ['nw','ne','sw','se'].forEach(pos => {
     const h = document.createElement('div');
     h.className = 'handle ' + pos;
-    h.addEventListener('mousedown', (e) => startResize(e, el, pos));
+    h.addEventListener('pointerdown', e => startResize(e, el, pos));
     selection.appendChild(h);
   });
 
@@ -207,10 +153,11 @@ function removeSelection() {
   selection = null;
 }
 
-// -------- Resize --------
+// Resize
 let resizing = null;
 function startResize(e, el, corner) {
   e.stopPropagation();
+  el.setPointerCapture(e.pointerId);
   resizing = {
     el, corner,
     startX: e.clientX,
@@ -218,27 +165,150 @@ function startResize(e, el, corner) {
     startW: el.offsetWidth,
     startH: el.offsetHeight
   };
-  document.addEventListener('mousemove', resize);
-  document.addEventListener('mouseup',   endResize);
+  window.addEventListener('pointermove', onResizeMove, { passive:false });
+  window.addEventListener('pointerup',   endResize,     { passive:true  });
 }
-function resize(e) {
+function onResizeMove(e) {
   if (!resizing) return;
+  e.preventDefault();
   const { el, corner, startX, startY, startW, startH } = resizing;
   const dx = (e.clientX - startX) / scale;
   const dy = (e.clientY - startY) / scale;
-
   if (corner.includes('e')) el.style.width  = (startW + dx) + 'px';
   if (corner.includes('s')) el.style.height = (startH + dy) + 'px';
-
   updateSelection(el);
 }
 function endResize() {
   resizing = null;
-  document.removeEventListener('mousemove', resize);
-  document.removeEventListener('mouseup',   endResize);
+  window.removeEventListener('pointermove', onResizeMove);
+  window.removeEventListener('pointerup',   endResize);
 }
 
-// -------- Export layout (พิมพ์ใน Console: exportLayout()) --------
+// ----- Pointer Events: pan / drag / pinch -----
+
+// เริ่มกด
+canvas.addEventListener('pointerdown', (e) => {
+  // เก็บทุก pointer ไว้ก่อน (เพื่อรู้ว่าเป็น pinch หรือไม่)
+  pointerMap.set(e.pointerId, getPointerXY(e));
+
+  // ถ้าแตะบน element → drag
+  if (e.target.classList && e.target.classList.contains('draggable') && pointerMap.size === 1) {
+    activeDrag = e.target;
+    const rect = activeDrag.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
+    dragOffset.x = (e.clientX - rect.left);
+    dragOffset.y = (e.clientY - rect.top);
+
+    addSelection(activeDrag);
+    activeDrag.setPointerCapture(e.pointerId);
+  }
+
+  // กันเบราว์เซอร์ scroll/zoom เอง
+  e.preventDefault();
+}, { passive:false });
+
+// ระหว่างลาก/แพน/พินช์
+canvas.addEventListener('pointermove', (e) => {
+  // อัปเดตตำแหน่ง pointer ปัจจุบัน
+  pointerMap.set(e.pointerId, getPointerXY(e));
+
+  if (resizing) return; // ถ้ากำลังรีไซส์ ให้ onResizeMove จัดการ
+
+  // โหมด pinch (2 นิ้ว)
+  if (pointerMap.size >= 2) {
+    const info = pinchInfo();
+    if (!info) return;
+
+    // เก็บค่า static ครั้งแรกของ pinch
+    if (!canvas._pinch) {
+      canvas._pinch = {
+        startDist: info.dist,
+        startScale: scale,
+        // คำนวณให้ซูมรอบจุดกลางของสองนิ้ว
+        stageRect: stage.getBoundingClientRect(),
+        centerX: info.cx,
+        centerY: info.cy
+      };
+    } else {
+      const k = info.dist / canvas._pinch.startDist;
+      const newScale = Math.min(Math.max(0.3, canvas._pinch.startScale * k), 3);
+
+      // รักษาจุดกลางไว้ที่เดิม (zoom to focal point)
+      const prev = scale;
+      scale = newScale;
+      const mx = (canvas._pinch.centerX - canvas._pinch.stageRect.left) / prev;
+      const my = (canvas._pinch.centerY - canvas._pinch.stageRect.top)  / prev;
+      originX = canvas._pinch.centerX - mx * scale;
+      originY = canvas._pinch.centerY - my * scale;
+      applyTransform();
+      updateSelection(activeDrag);
+    }
+    e.preventDefault();
+    return;
+  }
+
+  // โหมด drag (นิ้วเดียวบน element)
+  if (activeDrag && pointerMap.size === 1) {
+    const stageRect = stage.getBoundingClientRect();
+    const x = (e.clientX - dragOffset.x - stageRect.left) / scale;
+    const y = (e.clientY - dragOffset.y - stageRect.top)  / scale;
+    activeDrag.style.left = x + 'px';
+    activeDrag.style.top  = y + 'px';
+    updateSelection(activeDrag);
+    e.preventDefault();
+    return;
+  }
+
+  // โหมด pan (นิ้วเดียวบนพื้นหลัง)
+  if (!activeDrag && pointerMap.size === 1) {
+    // ใช้วิธี delta จากครั้งก่อน
+    const prev = canvas._panPrev || getPointerXY(e);
+    originX += (e.clientX - prev.x);
+    originY += (e.clientY - prev.y);
+    canvas._panPrev = getPointerXY(e);
+    applyTransform();
+    e.preventDefault();
+    return;
+  }
+}, { passive:false });
+
+// ปล่อยนิ้ว/เมาส์
+canvas.addEventListener('pointerup', (e) => {
+  pointerMap.delete(e.pointerId);
+  if (activeDrag) {
+    try { activeDrag.releasePointerCapture(e.pointerId); } catch {}
+  }
+  if (pointerMap.size < 2) canvas._pinch = null;
+  if (pointerMap.size === 0) {
+    activeDrag = null;
+    canvas._panPrev = null;
+  }
+}, { passive:true });
+
+canvas.addEventListener('pointercancel', (e) => {
+  pointerMap.delete(e.pointerId);
+  canvas._pinch = null;
+  canvas._panPrev = null;
+  activeDrag = null;
+}, { passive:true });
+
+// ----- Wheel zoom สำหรับ desktop -----
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const prev = scale;
+  const delta = -e.deltaY * 0.001;
+  scale = Math.min(Math.max(0.3, scale + delta), 3);
+
+  const rect = stage.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / prev;
+  const my = (e.clientY - rect.top)  / prev;
+  originX = e.clientX - mx * scale;
+  originY = e.clientY - my * scale;
+
+  applyTransform();
+}, { passive:false });
+
+// ----- Export layout (พิมพ์ใน Console: exportLayout()) -----
 window.exportLayout = function () {
   const obj = {};
   document.querySelectorAll('.draggable').forEach(el => {
@@ -251,4 +321,3 @@ window.exportLayout = function () {
   console.log(JSON.stringify(obj, null, 2));
   return obj;
 };
-
