@@ -9,7 +9,9 @@
     :root{ --bgA:#d9f0ff; --bgB:#ffe7f7; --ring:rgba(0,0,0,.18); }
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto}
-    body{background:linear-gradient(135deg,var(--bgA),var(--bgB));}
+    body{
+      background: radial-gradient(circle at center, var(--bgA) 0%, var(--bgB) 100%);
+    }
 
     .toolbar{
       position:fixed; left:16px; top:16px; z-index:10;
@@ -58,7 +60,7 @@
 (function(){
   /* ===== CONFIG ===== */
   const COUNT = 23;                       // ← แก้ให้ตรงกับจำนวนรูปจริง
-  const EXT   = 'png';                    // ← ใช้ png แทน svg
+  const EXT   = 'png';                    // ← ใช้ png
   const pathFor = i => `elements/frame-${i}.${EXT}`;
 
   const canvas = document.getElementById('canvas');
