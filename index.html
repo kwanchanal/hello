@@ -22,15 +22,15 @@
     .draggable{
       position:absolute; user-select:none; -webkit-user-drag:none; cursor:grab;
       filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));
-      transition: transform .2s ease; /* ใช้ตอนปกติ */
+      transition: transform .2s ease;
       will-change: transform;
     }
     .draggable:active{ cursor:grabbing; }
 
-    /* hover bounce — เปิดใช้งานอีกครั้ง */
+    /* hover bounce */
     .draggable:hover{
       animation: bounce 0.6s;
-      transition: none; /* ไม่ให้ transition มาทับตอนกำลังเด้ง */
+      transition: none;
     }
     @keyframes bounce{
       0%   { transform: translateY(0) scale(1); }
@@ -40,21 +40,24 @@
       100% { transform: translateY(0) scale(1); }
     }
 
-    /* staged entrance */
+    /* staged entrance (ใช้ class ไม่ใช้ inline opacity) */
+    .entrance{
+      animation: popIn 720ms cubic-bezier(.2,.8,.2,1) both;
+    }
     @keyframes popIn {
-      0%   { opacity:0; transform: translateY(20px) scale(0.94); }
-      60%  { opacity:1; transform: translateY(-6px)  scale(1.03); }
-      100% { opacity:1; transform: translateY(0)     scale(1); }
+      0%   { transform: translateY(20px) scale(0.94); opacity:0; }
+      60%  { transform: translateY(-6px)  scale(1.03); opacity:1; }
+      100% { transform: translateY(0)     scale(1);    opacity:1; }
     }
 
-    /* hint playful (gradient + shimmer) — ฟอนต์สีดำ + โปร่ง 50% */
+    /* hint playful */
     .hint{
       position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
       background: linear-gradient(135deg, #FFE29A 0%, #FF9DE2 50%, #7AE1FF 100%);
       background-size: 200% 200%;
       animation: shimmer 10s ease-in-out infinite;
-      color:#000;                 /* ฟอนต์สีดำ */
-      opacity:.5;                 /* โปร่ง 50% */
+      color:#000;
+      opacity:.5;
       padding:10px 18px; border-radius:14px;
       font-size:14px; font-weight:600;
       box-shadow: var(--hintShadow); text-align:center;
@@ -67,7 +70,7 @@
       100%{background-position: 0% 50%; }
     }
 
-    /* ==== Selection Frame (แบบ Figma/PS) ==== */
+    /* Selection frame */
     .selection{
       position:absolute; pointer-events:none;
       outline: 2px solid var(--sel);
@@ -99,7 +102,7 @@
   const COUNT = 23;                // ← แก้ให้ตรงจำนวนภาพจริง
   const EXT   = 'png';
   const pathFor = i => `elements/frame-${i}.${EXT}`;
-  const MIN_W = 60;                // ความกว้างต่ำสุดของรูปเวลา resize
+  const MIN_W = 60;
 
   const canvas = document.getElementById('canvas');
   const stage  = document.getElementById('stage');
@@ -108,15 +111,15 @@
   const saved = JSON.parse(localStorage.getItem('canvas_positions_v1')||'{}');
   const COLS=6, GAP=140, START_X=120, START_Y=120, BASE_W=300;
 
-  const imgs = [];
   for(let i=1;i<=COUNT;i++){
     const img = document.createElement('img');
     img.src = pathFor(i);
     img.alt = `frame-${i}`;
-    img.className = 'draggable';
+    img.className = 'draggable entrance';   // ใช้คลาสสำหรับ entrance
     img.dataset.id = `frame-${i}`;
     img.decoding = 'async';
     img.loading  = 'lazy';
+    img.onerror = ()=>console.warn('missing image:', img.src);
 
     const keep = saved[img.dataset.id];
     if(keep){
@@ -130,24 +133,23 @@
       img.style.width = BASE_W + 'px';
     }
 
-    // staged entrance: random delay
+    // random delay ผ่าน style แต่ไม่แตะ opacity
     const baseDelay = (i-1) * 0.04;
     const jitter    = Math.random() * 0.18;
-    img.style.opacity = '0';
-    img.style.animation = `popIn 720ms cubic-bezier(.2,.8,.2,1) ${ (baseDelay + jitter).toFixed(2) }s both`;
+    img.style.animationDelay = (baseDelay + jitter).toFixed(2) + 's';
 
-    // ✅ เคลียร์ inline animation หลังเล่นจบ เพื่อให้ hover override ได้
+    // ลบ class หลังเล่นเสร็จ เพื่อไม่ให้ไปทับ hover bounce
     img.addEventListener('animationend', (ev)=>{
       if(ev.animationName === 'popIn'){
-        img.style.animation = '';
+        img.classList.remove('entrance');
+        img.style.animationDelay = '';
       }
     });
 
-    imgs.push(img);
     stage.appendChild(img);
   }
 
-  /* ===== PAN / ZOOM ของทั้งผืน ===== */
+  /* ===== PAN / ZOOM ===== */
   let scale=0.5, minScale=.3, maxScale=3, tx=0, ty=0;
   const apply=()=> stage.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
 
@@ -157,10 +159,10 @@
     tx = (vw - sw) / 2; ty = (vh - sh) / 2; apply();
   }
 
-  // Pan (ลากพื้นที่ว่าง)
+  // Pan (พื้นที่ว่าง)
   let panning=false,sx=0,sy=0,stx=0,sty=0;
   canvas.addEventListener('mousedown',e=>{
-    if(e.target!==canvas) return; // กดพื้นที่ว่างเท่านั้น
+    if(e.target!==canvas) return;
     clearSelection();
     panning=true; sx=e.clientX; sy=e.clientY; stx=tx; sty=ty;
   });
@@ -184,15 +186,14 @@
   // Double click = reset view
   canvas.addEventListener('dblclick',e=>{ if(e.target!==canvas) return; scale=0.5; centerStage(); });
 
-  /* ===== DRAG รูป ===== */
+  /* ===== DRAG / SELECT / RESIZE ===== */
   let active=null, startX=0, startY=0, ox=0, oy=0;
+
   stage.addEventListener('mousedown',e=>{
     const el=e.target.closest('.draggable'); 
     if(!el) return;
-    select(el); // คลิกแล้วเลือกก่อน
-
-    // เริ่มลาก (ถ้าไม่ได้กดที่ handle)
-    if(e.target.classList.contains('handle')) return; // ถ้ากดที่ handle จะไปโหมด resize
+    select(el);
+    if(e.target.classList.contains('handle')) return; // ไปโหมด resize แทน
     active=el;
     const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
     startX=wx; startY=wy; ox=parseFloat(el.style.left)||0; oy=parseFloat(el.style.top)||0;
@@ -204,16 +205,15 @@
     const wx=(e.clientX-tx)/scale, wy=(e.clientY-ty)/scale;
     active.style.left=(ox + (wx-startX))+'px';
     active.style.top =(oy + (wy-startY))+'px';
-    updateSelectionBox(); // ขยับกรอบตาม
+    updateSelectionBox();
   }
   function endDrag(){ 
     persist(); active=null;
     window.removeEventListener('mousemove',drag); window.removeEventListener('mouseup',endDrag);
   }
 
-  /* ===== Selection + Resize ===== */
-  let selBox=null, handles={}; // กรอบและปุ่มจับมุม
-  let selected=null;
+  /* Selection + Resize */
+  let selBox=null, handles={}, selected=null;
   function select(el){
     if(selected === el) return;
     selected = el;
@@ -224,12 +224,10 @@
     selected = null;
     if(selBox) selBox.style.display='none';
   }
-
   function ensureSelectionBox(){
     if(selBox) { selBox.style.display='block'; return; }
     selBox = document.createElement('div');
     selBox.className = 'selection';
-    // 4 มุม
     ['nw','ne','sw','se'].forEach(pos=>{
       const h = document.createElement('div');
       h.className = `handle ${pos}`;
@@ -240,21 +238,18 @@
     });
     stage.appendChild(selBox);
   }
-
   function getRatio(el){
     if(el.naturalWidth) return el.naturalHeight / el.naturalWidth;
     const rect = el.getBoundingClientRect();
     return rect.height/rect.width || 1;
   }
-
   function updateSelectionBox(){
     if(!selected || !selBox) return;
     const x = parseFloat(selected.style.left)||0;
     const y = parseFloat(selected.style.top)||0;
-    const w = parseFloat(selected.style.width)||300;
+    const w = parseFloat(selected.style.width)||BASE_W;
     const ratio = getRatio(selected);
     const h = w * ratio;
-
     selBox.style.left = x + 'px';
     selBox.style.top  = y + 'px';
     selBox.style.width  = w + 'px';
@@ -271,40 +266,24 @@
     rStartY = (e.clientY - ty) / scale;
     rOrig.x = parseFloat(selected.style.left)||0;
     rOrig.y = parseFloat(selected.style.top)||0;
-    rOrig.w = parseFloat(selected.style.width)||300;
+    rOrig.w = parseFloat(selected.style.width)||BASE_W;
     rOrig.ratio = getRatio(selected);
-
     window.addEventListener('mousemove',onResize);
     window.addEventListener('mouseup',endResize);
   }
-
   function onResize(e){
     if(!resizing || !selected) return;
     e.preventDefault();
     const wx = (e.clientX - tx) / scale;
     const dx = wx - rStartX;
-
     let newW = rOrig.w;
     let newX = rOrig.x;
     let newY = rOrig.y;
 
-    if(resizePos === 'se'){          // ขยายขวาล่าง
-      newW = rOrig.w + dx;
-    } else if(resizePos === 'ne'){   // ขยายขวาบน
-      newW = rOrig.w + dx;
-      const newH = Math.max(MIN_W, newW) * rOrig.ratio;
-      newY = rOrig.y + ((rOrig.w*rOrig.ratio) - newH);
-    } else if(resizePos === 'sw'){   // ขยายซ้ายล่าง
-      newW = rOrig.w - dx;
-      const deltaW = rOrig.w - newW;
-      newX = rOrig.x + deltaW;
-    } else if(resizePos === 'nw'){   // ขยายซ้ายบน
-      newW = rOrig.w - dx;
-      const deltaW = rOrig.w - newW;
-      newX = rOrig.x + deltaW;
-      const newH = Math.max(MIN_W, newW) * rOrig.ratio;
-      newY = rOrig.y + ((rOrig.w*rOrig.ratio) - newH);
-    }
+    if(resizePos === 'se'){ newW = rOrig.w + dx; }
+    else if(resizePos === 'ne'){ newW = rOrig.w + dx; newY = rOrig.y + ((rOrig.w*rOrig.ratio) - Math.max(MIN_W,newW)*rOrig.ratio); }
+    else if(resizePos === 'sw'){ newW = rOrig.w - dx; newX = rOrig.x + (rOrig.w - newW); }
+    else if(resizePos === 'nw'){ newW = rOrig.w - dx; newX = rOrig.x + (rOrig.w - newW); newY = rOrig.y + ((rOrig.w*rOrig.ratio) - Math.max(MIN_W,newW)*rOrig.ratio); }
 
     newW = Math.max(MIN_W, newW);
     selected.style.width = newW + 'px';
@@ -312,7 +291,6 @@
     selected.style.top   = newY + 'px';
     updateSelectionBox();
   }
-
   function endResize(){
     if(!resizing) return;
     resizing = false;
@@ -346,4 +324,3 @@
 </script>
 </body>
 </html>
-
