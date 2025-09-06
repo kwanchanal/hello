@@ -6,10 +6,12 @@
   <title>Canvas Playground — Drag • Pan • Zoom</title>
   <meta name="description" content="Canvas-like page with PNG elements (frame-1.png ...), drag, pan, and zoom.">
   <style>
-    :root{ --bgA:#d9f0ff; --bgB:#ffe7f7; --ring:rgba(0,0,0,.18); }
+    :root{ --ring:rgba(0,0,0,.18); }
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto}
-    body{background:linear-gradient(135deg,var(--bgA),var(--bgB));}
+    body{
+      background: radial-gradient(circle at center, #81DBFC 0%, #E3F2BD 100%);
+    }
 
     /* Toolbar */
     .toolbar{
@@ -31,6 +33,8 @@
       position:absolute; user-select:none; -webkit-user-drag:none; cursor:grab;
       filter:drop-shadow(0 10px 20px rgba(0,0,0,.18));
       transition: box-shadow .2s ease;
+      max-width: 300px;
+      max-height: 300px;
     }
     .draggable:active{ cursor:grabbing; }
 
@@ -62,7 +66,7 @@
 (function(){
   /* ===== CONFIG ===== */
   const COUNT = 23;                       // ← ปรับตามจำนวนรูปจริง
-  const EXT   = 'png';                    // ← นามสกุลไฟล์ (png)
+  const EXT   = 'png';                    // ← นามสกุลไฟล์
   const pathFor = i => `elements/frame-${i}.${EXT}`;
 
   const canvas = document.getElementById('canvas');
@@ -70,7 +74,7 @@
 
   /* ===== ใส่รูปทั้งหมดลงแคนวาส ===== */
   const saved = JSON.parse(localStorage.getItem('canvas_positions_v1')||'{}');
-  const COLS=6, GAP=140, START_X=120, START_Y=120, BASE_W=300;
+  const COLS=6, GAP=140, START_X=120, START_Y=120, BASE_W=200;
 
   for(let i=1;i<=COUNT;i++){
     const img = document.createElement('img');
@@ -80,7 +84,7 @@
     img.dataset.id = `frame-${i}`;
     img.decoding = 'async';
     img.loading  = 'lazy';
-    img.onerror = () => { // ช่วยดีบั๊กกรณีพิมพ์ชื่อผิด
+    img.onerror = () => {
       console.warn('Image failed:', img.src);
       img.style.outline = '2px dashed crimson';
       img.title = `Not found: ${img.src}`;
@@ -100,11 +104,11 @@
     stage.appendChild(img);
   }
 
-  /* ===== PAN / ZOOM ทั้งผืน ===== */
+  /* ===== PAN / ZOOM ===== */
   let scale=1, minScale=.3, maxScale=3, tx=0, ty=0;
   const apply=()=> stage.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
 
-  // Pan ด้วยเมาส์ (ลากพื้นที่ว่าง)
+  // Pan
   let panning=false,sx=0,sy=0,stx=0,sty=0;
   canvas.addEventListener('mousedown',e=>{
     if(e.target!==canvas) return;
@@ -116,7 +120,7 @@
   });
   window.addEventListener('mouseup',()=>panning=false);
 
-  // Zoom ด้วยล้อเมาส์ + Ctrl/Cmd (รวม pinch trackpad ของ Mac)
+  // Zoom
   canvas.addEventListener('wheel',e=>{
     const zooming = e.ctrlKey || e.metaKey; if(!zooming) return;
     e.preventDefault();
@@ -127,7 +131,7 @@
     tx=cx-wx*ns; ty=cy-wy*ns; scale=ns; apply();
   }, {passive:false});
 
-  // Pinch 2 นิ้วบนมือถือ
+  // Pinch zoom
   let pinching=false, startDist=0, startScale=1, startMid=[0,0], startTx=0, startTy=0;
   canvas.addEventListener('touchstart', e=>{
     if(e.touches.length===2){
@@ -146,17 +150,16 @@
     const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
     let ns = startScale * (dist / startDist);
     ns = Math.max(minScale, Math.min(maxScale, ns));
-
     const r=canvas.getBoundingClientRect(), cx=startMid[0]-r.left, cy=startMid[1]-r.top;
     const wx=(cx-startTx)/scale, wy=(cy-startTy)/scale;
     tx = cx - wx*ns; ty = cy - wy*ns; scale = ns; apply();
   }, {passive:false});
   canvas.addEventListener('touchend', ()=>{ pinching=false; });
 
-  // Reset view
+  // Reset
   canvas.addEventListener('dblclick',e=>{ if(e.target!==canvas) return; scale=1; tx=0; ty=0; apply(); });
 
-  /* ===== DRAG ทีละรูป (ชดเชย scale) ===== */
+  /* ===== DRAG ===== */
   let active=null, startX=0, startY=0, ox=0, oy=0;
   stage.addEventListener('mousedown',e=>{
     const el=e.target.closest('.draggable'); if(!el) return;
@@ -174,9 +177,9 @@
     window.removeEventListener('mousemove',drag); window.removeEventListener('mouseup',end);
   }
 
-  // Touch drag (พื้นฐาน)
+  // Touch drag
   stage.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1) return; // ถ้าเป็น pinch ให้ระบบ pinch จัดการ
+    if(e.touches.length!==1) return;
     const t=e.touches[0]; const el=e.target.closest('.draggable'); if(!el) return;
     active=el; const wx=(t.clientX-tx)/scale, wy=(t.clientY-ty)/scale;
     startX=wx; startY=wy; ox=parseFloat(el.style.left)||0; oy=parseFloat(el.style.top)||0;
@@ -190,7 +193,7 @@
   }, {passive:false});
   stage.addEventListener('touchend',()=>{ if(active){ persist(); active=null; } });
 
-  // Save layout
+  // Save
   function persist(){
     const obj={};
     stage.querySelectorAll('.draggable').forEach(el=>{
