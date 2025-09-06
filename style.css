@@ -11,17 +11,18 @@ html, body {
 }
 
 #canvas {
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
 
 #stage {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform-origin: 0 0; /* สำคัญสำหรับ pan/zoom */
+  display: inline-block;   /* สำคัญ: ให้ stage กว้างเท่ากับ content */
+  position: relative;
+  transform-origin: center center; /* เวลาซูม ให้ซูมจากกลาง */
 }
 
 /* pieces */
