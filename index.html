@@ -8,13 +8,42 @@
 </head>
 <body>
   <div id="canvas">
+    <!-- stage อยู่กึ่งกลางด้วย CSS -->
     <div id="stage" aria-label="playground"></div>
   </div>
 
   <!-- hint pill -->
   <div class="hint" role="note">drag + zoom + resize + to play with me!</div>
 
+  <!-- main interaction -->
   <script src="./script.js"></script>
-  <script src="./stagger-onload.js"></script>
+
+  <!-- inline animation -->
+  <script>
+    (function () {
+      const SELECTORS = [
+        '#stage > *:not(.draggable)',
+        '#stage img:not(.draggable)',
+        '#stage svg:not(.draggable)'
+      ];
+      const STAGGER = 90, DURATION = 600, EASING = 'cubic-bezier(.2,.75,.25,1.2)';
+      function animateNodes(nodes){
+        nodes.forEach((el, i) => {
+          const anim = el.animate(
+            [
+              { opacity: 0, transform: 'translateY(20px) scale(.96)', filter: 'blur(1.5px)' },
+              { opacity: 1, transform: 'translateY(0) scale(1)', filter: 'blur(0)' }
+            ],
+            { duration: DURATION, delay: i*STAGGER, easing: EASING, fill: 'none' }
+          );
+          anim.addEventListener('finish', () => anim.cancel());
+        });
+      }
+      window.addEventListener('load', () => {
+        const els = Array.from(document.querySelectorAll(SELECTORS.join(',')));
+        if (els.length) animateNodes(els);
+      }, { once: true });
+    })();
+  </script>
 </body>
 </html>
