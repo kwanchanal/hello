@@ -1,16 +1,22 @@
 // =====================================================
-// Canvas Playground — Clean build (drag + resize + persist(desktop) + mobile-random + pan + zoom/pinch + hover-bounce)
+// Canvas Playground — Clean build
+// - Drag + Resize (handles)
+// - Desktop: persist x/y/w/h in localStorage
+// - Mobile: random layout every load (no persist)
+// - Pan background + Wheel zoom (desktop)
+// - Pinch zoom (touch)
+// - Hover bounce + grab/grabbing cursor
 // =====================================================
 
 // ---------- Config ----------
 const IMAGE_COUNT = 23;
 const IS_MOBILE = window.matchMedia('(max-width: 640px)').matches;
-const PERSIST_KEY = 'hello-layout-v3';      // desktop only
-const PERSIST_ON_MOBILE = false;             // keep mobile "random every load"
-const WHEEL_ZOOM_STEP = 0.001;               // desktop wheel zoom speed
+const PERSIST_KEY = 'hello-layout-v3';     // desktop only
+const PERSIST_ON_MOBILE = false;           // keep mobile random on each visit
+const WHEEL_ZOOM_STEP = 0.001;
 const SCALE_MIN = 0.3, SCALE_MAX = 3;
 
-// Desktop default layout (fixed)
+// ---------- Desktop layout (FULL 23 items) ----------
 const desktopLayout = {
   "frame-1":  { "x": 646.51,  "y": -281.271, "w": 300 },
   "frame-2":  { "x": 75.6457, "y": -184.501, "w": 300 },
@@ -70,7 +76,7 @@ function computeMobileLayoutRandom() {
   return layout;
 }
 
-// ---------- Persistence (desktop only unless toggled) ----------
+// ---------- Persistence (desktop by default) ----------
 function loadSavedLayout() {
   if (IS_MOBILE && !PERSIST_ON_MOBILE) return {};
   try { return JSON.parse(localStorage.getItem(PERSIST_KEY) || '{}'); }
@@ -96,25 +102,6 @@ const canvas = document.getElementById('canvas');
 const stage  = document.getElementById('stage');
 if (!canvas || !stage) throw new Error('Missing #canvas or #stage');
 
-// inject minimal CSS (hover bounce + cursor + selection)
-(function injectCSS(){
-  const css = `
-    #stage .draggable{ position:absolute; cursor:grab; user-select:none; -webkit-user-drag:none; transform-origin:center; }
-    #stage .draggable:active{ cursor:grabbing; }
-    @keyframes kw_bounce{ 0%{transform:scale(.98)} 50%{transform:scale(1.04)} 100%{transform:scale(1)} }
-    .hover-bounce:hover{ animation: kw_bounce .8s cubic-bezier(.2,.75,.25,1.2); }
-
-    .kw-selection{ position:absolute; border:2px dashed rgba(0,0,0,.35); border-radius:10px; pointer-events:none; }
-    .kw-handle{ position:absolute; width:12px;height:12px;border-radius:50%; background:#fff; border:1px solid rgba(0,0,0,.35); box-shadow:0 1px 3px rgba(0,0,0,.25); pointer-events:all; }
-    .kw-handle[data-pos="nw"]{ left:-6px; top:-6px; cursor:nwse-resize; }
-    .kw-handle[data-pos="ne"]{ right:-6px; top:-6px; cursor:nesw-resize; }
-    .kw-handle[data-pos="sw"]{ left:-6px; bottom:-6px; cursor:nesw-resize; }
-    .kw-handle[data-pos="se"]{ right:-6px; bottom:-6px; cursor:nwse-resize; }
-  `;
-  const s=document.createElement('style'); s.textContent=css; document.head.appendChild(s);
-})();
-
-// build elements
 const els = [];
 const loadPromises = [];
 for (let i = 1; i <= IMAGE_COUNT; i++) {
@@ -150,15 +137,16 @@ function applyLayout(layout) {
 }
 applyLayout(initialLayout);
 
-// stage transform (pan + zoom)
+// ---------- Stage transform (pan + zoom) ----------
 let scale   = IS_MOBILE ? 0.6 : 0.5;
 let originX = 0, originY = 0;
 
 function applyTransform() {
   stage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
 }
+applyTransform();
 
-// center view on content after images loaded
+// center on content
 function centerStageOnContent() {
   if (!els.length) return;
   let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
@@ -174,19 +162,12 @@ function centerStageOnContent() {
   originY=(viewH/2)-(cy*scale);
   applyTransform();
 }
-
 Promise.all(loadPromises).then(() => {
   centerStageOnContent();
-  // seed storage once on desktop if empty
   if (!IS_MOBILE && !Object.keys(saved).length) saveLayoutNow();
 });
 
-// =====================================================
-// Pointer handling (drag element, resize handles, pan background, pinch zoom)
-// =====================================================
-const pointerMap = new Map();
-const getXY = e => ({ x: e.clientX, y: e.clientY });
-
+// ---------- Selection (frame + handles) ----------
 let selection=null, selectionTarget=null;
 function showSelection(el){
   hideSelection();
@@ -218,6 +199,10 @@ function hideSelection(){
   selection = null;
 }
 
+// ---------- Drag / Pan / Resize ----------
+const pointerMap = new Map();
+const getXY = e => ({ x: e.clientX, y: e.clientY });
+
 // drag element
 let activeDrag=null, dragOffset={x:0,y:0}, dragPointerId=null;
 
@@ -227,20 +212,18 @@ let panActive=false, panPointerId=null, panPrev=null;
 // resize
 let resizing=null; // {el,pos,startX,startY,startW,startH,startL,startT}
 
-function stageToLocal(clientX, clientY) {
+// convert client to stage coords (consider scale)
+function stageLocalXY(clientX, clientY) {
   const s = stage.getBoundingClientRect();
-  return {
-    x: (clientX - s.left) / scale,
-    y: (clientY - s.top)  / scale
-  };
+  return { x: (clientX - s.left) / scale, y: (clientY - s.top) / scale };
 }
 
-// ----- pointerdown -----
+// pointerdown
 canvas.addEventListener('pointerdown', (e) => {
   pointerMap.set(e.pointerId, getXY(e));
   const isLeft = (e.button === 0 || e.pointerType !== 'mouse');
 
-  // handle click on element -> drag
+  // click on piece -> drag
   const piece = e.target.closest && e.target.closest('.draggable');
   if (piece && isLeft) {
     activeDrag = piece;
@@ -266,23 +249,22 @@ canvas.addEventListener('pointerdown', (e) => {
   }
 }, {passive:false});
 
-// ----- pointermove -----
+// pointermove
 window.addEventListener('pointermove', (e) => {
   if (pointerMap.has(e.pointerId)) pointerMap.set(e.pointerId, getXY(e));
 
-  // quick cancel if mouse button released
+  // quick cancel if mouse released
   if (e.pointerType === 'mouse' && e.buttons === 0 && (activeDrag || resizing || panActive)) {
     endAll();
     return;
   }
 
-  // resize in progress
+  // resize
   if (resizing) {
     e.preventDefault();
     const { el, pos, startX, startY, startW, startH, startL, startT } = resizing;
-    const locStart = { x:startX, y:startY };
-    const dx = (e.clientX - locStart.x) / scale;
-    const dy = (e.clientY - locStart.y) / scale;
+    const dx = (e.clientX - startX) / scale;
+    const dy = (e.clientY - startY) / scale;
 
     let newW = startW, newH = startH, newL = startL, newT = startT;
     if (pos.includes('e')) newW = startW + dx;
@@ -290,14 +272,13 @@ window.addEventListener('pointermove', (e) => {
     if (pos.includes('w')) { newW = startW - dx; newL = startL + dx; }
     if (pos.includes('n')) { newH = startH - dy; newT = startT + dy; }
 
-    // min size guard
     newW = Math.max(40, newW);
     newH = Math.max(40, newH);
 
-    el.style.left = newL + 'px';
-    el.style.top  = newT + 'px';
-    el.style.width = newW + 'px';
-    el.style.height = newH + 'px';
+    el.style.left = `${newL}px`;
+    el.style.top  = `${newT}px`;
+    el.style.width = `${newW}px`;
+    el.style.height = `${newH}px`;
     updateSelection(el);
     saveLayout();
     return;
@@ -316,7 +297,7 @@ window.addEventListener('pointermove', (e) => {
     return;
   }
 
-  // pan background
+  // pan
   if (panActive && (e.buttons & 1) && e.pointerId === panPointerId) {
     e.preventDefault();
     originX += (e.clientX - (panPrev?.x ?? e.clientX));
@@ -327,7 +308,7 @@ window.addEventListener('pointermove', (e) => {
   }
 }, {passive:false});
 
-// ----- pointerup / cancel etc. -----
+// pointerup / cancel / etc.
 function endAll() {
   try {
     if (dragPointerId != null && canvas.hasPointerCapture?.(dragPointerId)) {
@@ -339,9 +320,7 @@ function endAll() {
   activeDrag = null;
 
   resizing = null;
-  panActive = false;
-  panPointerId = null;
-  panPrev = null;
+  panActive = false; panPointerId = null; panPrev = null;
 
   pointerMap.clear();
   saveLayoutNow();
@@ -352,7 +331,7 @@ function endAll() {
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) endAll(); });
 canvas.addEventListener('lostpointercapture', endAll);
 
-// ----- resize handles -----
+// start resize
 function startResize(e, el, pos) {
   e.stopPropagation(); e.preventDefault();
   const r = el.getBoundingClientRect();
@@ -363,24 +342,20 @@ function startResize(e, el, pos) {
     startY: e.clientY,
     startW: r.width,
     startH: r.height,
-    startL: (r.left - s.left) / 1,  // already in CSS px of stage coords
+    startL: (r.left - s.left) / 1,
     startT: (r.top  - s.top ) / 1
   };
   try { canvas.setPointerCapture(e.pointerId); } catch {}
 }
 
-// =====================================================
-// Zoom / Pinch
-// =====================================================
-
-// mouse wheel zoom (desktop)
+// ---------- Zoom / Pinch ----------
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   const prev = scale;
   const delta = -e.deltaY * WHEEL_ZOOM_STEP;
   scale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, scale + delta));
 
-  const r = stage.getBoundingClientRect(); // transformed box
+  const r = stage.getBoundingClientRect();
   const mx = (e.clientX - r.left) / prev;
   const my = (e.clientY - r.top ) / prev;
   originX = e.clientX - mx * scale;
@@ -388,20 +363,14 @@ canvas.addEventListener('wheel', (e) => {
   applyTransform();
 }, {passive:false});
 
-// touch pinch zoom
 function pinchInfo() {
   const pts = [...pointerMap.values()];
   if (pts.length < 2) return null;
   const [a,b] = pts;
   return { cx:(a.x+b.x)/2, cy:(a.y+b.y)/2, dist:Math.hypot(b.x-a.x, b.y-a.y) };
 }
-
 let pinchState = null;
-canvas.addEventListener('pointerdown', (/* e already handled above */) => {
-  // nothing else; map filled in pointerdown handler
-});
 window.addEventListener('pointermove', (e) => {
-  // when 2+ pointers and not mouse => pinch
   if (pointerMap.size >= 2 && e.pointerType !== 'mouse') {
     const info = pinchInfo(); if (!info) return;
     if (!pinchState) {
@@ -423,13 +392,11 @@ window.addEventListener('pointermove', (e) => {
   window.addEventListener(ev, () => { if (pointerMap.size < 2) pinchState = null; }, {passive:true});
 });
 
-// =====================================================
-// Responsiveness: if user never interacted and no saved layout, switch on breakpoint
-// =====================================================
+// ---------- Responsive re-layout if no saved layout ----------
 const mq = window.matchMedia('(max-width: 640px)');
 mq.addEventListener?.('change', (ev) => {
   if (Object.keys(loadSavedLayout()).length) return; // don't override saved
-  if (IS_MOBILE && !PERSIST_ON_MOBILE) return;       // already mobile random
+  if (IS_MOBILE && !PERSIST_ON_MOBILE) return;       // mobile already random
   const layout = ev.matches ? computeMobileLayoutRandom() : desktopLayout;
   applyLayout(layout);
   centerStageOnContent();
