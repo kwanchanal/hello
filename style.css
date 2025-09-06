@@ -108,7 +108,7 @@ html,body{
   animation: gradientShift 8s ease infinite;
   padding: 10px 18px;
   border-radius: 12px;
-  /* ลบ border ขาวออก */
+/* ลบ border ขาวออก */
   font-family: sans-serif;
   font-size: 16px;
   font-weight: 600;
