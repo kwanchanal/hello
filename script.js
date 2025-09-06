@@ -1,4 +1,4 @@
-// Layout เริ่มต้นจาก JSON ที่คุณให้
+// Layout เริ่มต้น
 const initialLayout = {
   "frame-1": { "x": 646.51, "y": -281.271, "w": 300 },
   "frame-2": { "x": 75.6457, "y": -184.501, "w": 300 },
@@ -43,7 +43,7 @@ for (let i = 1; i <= 23; i++) {
 }
 
 // Pan + Zoom
-let scale = 1, originX = 0, originY = 0;
+let scale = 0.5, originX = 0, originY = 0; // 🔥 เริ่มต้นที่ 50% zoom out
 let isPanning = false, startX = 0, startY = 0;
 
 const canvas = document.getElementById("canvas");
@@ -112,7 +112,6 @@ function endDrag() {
 
 function addSelection(el) {
   removeSelection();
-  const rect = el.getBoundingClientRect();
   selection = document.createElement("div");
   selection.className = "selection";
 
@@ -166,7 +165,7 @@ function endResize() {
   document.removeEventListener("mouseup", endResize);
 }
 
-// Export layout (console)
+// Export layout
 window.exportLayout = function(){
   const obj = {};
   document.querySelectorAll(".draggable").forEach(el=>{
