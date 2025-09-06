@@ -1,5 +1,5 @@
 // =========================
-// Canvas Playground — Full JS (desktop anti-stuck)
+// Canvas Playground — Full JS (Canvas-level pointer capture)
 // =========================
 
 // ---------- Desktop layout (fixed) ----------
@@ -39,7 +39,7 @@ function computeMobileLayoutRandom() {
   function rand() { return Math.random(); }
   function randomInEllipse() {
     const theta = rand() * Math.PI * 2;
-    const r = Math.sqrt(rand());
+    const r = Math.sqrt(rand()); // bias เข้ากลาง
     return { x: Math.cos(theta) * R_x * r, y: Math.sin(theta) * R_y * r };
   }
   const placed = [], layout = {};
@@ -76,11 +76,8 @@ for (let i = 1; i <= 23; i++) {
   el.src = `elements/frame-${i}.png`;
   el.className = 'draggable entrance';
   el.dataset.id = `frame-${i}`;
-
-  // 🔒 ปิด native drag & drop ของรูป (กัน “ติดเมาส์”)
-  el.draggable = false;
+  el.draggable = false;                 // ปิด native drag ของรูป
   el.addEventListener('dragstart', e => e.preventDefault());
-
   stage.appendChild(el);
   els.push(el);
   loadPromises.push(new Promise(res => {
@@ -128,7 +125,7 @@ function centerStageOnContent() {
 Promise.all(loadPromises).then(centerStageOnContent);
 
 // =====================================================
-//               Robust Pointer Handling
+//        Canvas-level pointer capture (anti-stuck)
 // =====================================================
 const pointerMap = new Map();
 function getXY(e){ return {x:e.clientX, y:e.clientY}; }
@@ -141,8 +138,8 @@ function pinchInfo(){
 
 let selection=null, activeDrag=null, dragOffset={x:0,y:0}, userInteracted=false;
 let resizing=null;
+let dragPointerId=null; // <-- เก็บ pointerId ที่กำลังลากอยู่
 
-// selection frame + handles
 function addSelection(el){
   removeSelection();
   selection=document.createElement('div');
@@ -168,8 +165,9 @@ function removeSelection(){ if(selection) selection.remove(); selection=null; }
 
 function startResize(e,el,corner){
   e.stopPropagation(); e.preventDefault(); userInteracted=true;
-  try{ el.setPointerCapture(e.pointerId); }catch{}
+  try{ canvas.setPointerCapture(e.pointerId); }catch{}
   resizing={el,corner,startX:e.clientX,startY:e.clientY,startW:el.offsetWidth,startH:el.offsetHeight};
+  dragPointerId = e.pointerId; // ใช้ตัวเดียวกับ capture
 }
 
 function onResizeMove(e){
@@ -182,11 +180,14 @@ function onResizeMove(e){
   updateSelection(el);
 }
 
-// เคลียร์สถานะทั้งหมดให้เกลี้ยง
+// เคลียร์สถานะทั้งหมด
 function endAllPointers(){
-  if(activeDrag){
-    try { activeDrag.releasePointerCapture && activeDrag.releasePointerCapture?.(); } catch {}
-  }
+  try {
+    if (dragPointerId !== null && canvas.hasPointerCapture?.(dragPointerId)) {
+      canvas.releasePointerCapture(dragPointerId);
+    }
+  } catch {}
+  dragPointerId=null;
   resizing=null;
   activeDrag=null;
   canvas._pinch=null;
@@ -194,10 +195,11 @@ function endAllPointers(){
   pointerMap.clear();
 }
 
-// pointer down (เริ่มลากเมื่อแตะ element)
+// เริ่มกด
 canvas.addEventListener('pointerdown',(e)=>{
   pointerMap.set(e.pointerId, getXY(e));
 
+  // เริ่มลาก element → จับ capture ที่ canvas
   if(e.target.classList?.contains('draggable') && pointerMap.size===1){
     userInteracted=true;
     activeDrag=e.target;
@@ -205,22 +207,22 @@ canvas.addEventListener('pointerdown',(e)=>{
     dragOffset.x=e.clientX-r.left;
     dragOffset.y=e.clientY-r.top;
     addSelection(activeDrag);
-    try{ activeDrag.setPointerCapture(e.pointerId); }catch{}
+    try{ canvas.setPointerCapture(e.pointerId); }catch{} // 🔑 capture บน canvas
+    dragPointerId = e.pointerId;
   }
   e.preventDefault();
 },{passive:false});
 
-// pointer move (ฟังบน window เพื่อไม่ตกหล่น)
+// ขยับ (ใช้ window เพื่อไม่ตกหล่น)
 window.addEventListener('pointermove',(e)=>{
   pointerMap.set(e.pointerId, getXY(e));
 
-  // ถ้าปุ่มเมาส์ไม่ถูกกดแล้ว แต่ state ยังอยู่ → เคลียร์
+  // ถ้าปล่อยเมาส์แล้วแต่ state ยังอยู่ → เคลียร์
   if (e.buttons === 0 && (activeDrag || resizing)) { endAllPointers(); return; }
 
-  // กำลังรีไซซ์
   if(resizing){ onResizeMove(e); return; }
 
-  // pinch zoom (สองนิ้ว)
+  // pinch zoom
   if(pointerMap.size >= 2){
     const info=pinchInfo(); if(!info) return;
     if(!canvas._pinch){
@@ -239,7 +241,7 @@ window.addEventListener('pointermove',(e)=>{
     return;
   }
 
-  // drag element (นิ้วเดียว/เมาส์ซ้าย)
+  // drag element
   if(activeDrag && pointerMap.size===1){
     const s=stage.getBoundingClientRect();
     const x=(e.clientX-dragOffset.x-s.left)/scale;
@@ -251,7 +253,7 @@ window.addEventListener('pointermove',(e)=>{
     return;
   }
 
-  // pan canvas (นิ้วเดียวบนพื้นหลัง)
+  // pan canvas
   if(!activeDrag && pointerMap.size===1){
     const prev=canvas._panPrev||getXY(e);
     originX += (e.clientX-prev.x);
@@ -263,22 +265,29 @@ window.addEventListener('pointermove',(e)=>{
   }
 },{passive:false});
 
-// ปล่อย/ยกเลิก/ออกนอก/สลับแท็บ → เคลียร์ให้ชัวร์ (desktop-focused)
-function globalPointerEnd(){ endAllPointers(); }
+// ปล่อย / ยกเลิก / ออกนอก → เคลียร์
+function globalPointerEnd(e){
+  // เคลียร์เฉพาะ pointer ที่เป็นตัวลาก/รีไซซ์ หรือเคลียร์หมดถ้าไม่ทราบ
+  endAllPointers();
+}
 window.addEventListener('pointerup',        globalPointerEnd, {passive:true});
 window.addEventListener('pointercancel',    globalPointerEnd, {passive:true});
 window.addEventListener('pointerleave',     globalPointerEnd, {passive:true});
 window.addEventListener('pointerout',       globalPointerEnd, {passive:true});
+window.addEventListener('mouseup',          globalPointerEnd, {passive:true});
+window.addEventListener('mouseleave',       globalPointerEnd, {passive:true});
+window.addEventListener('contextmenu',      globalPointerEnd, {passive:true});
 window.addEventListener('blur',             globalPointerEnd);
 document.addEventListener('visibilitychange', ()=>{ if(document.hidden) globalPointerEnd(); });
 
-// เพิ่ม mouse fallback เฉพาะ desktop (กันบาง environment ที่ pointerup หลุด)
-window.addEventListener('mouseup',      globalPointerEnd, {passive:true});
-window.addEventListener('mouseleave',   globalPointerEnd, {passive:true});
-window.addEventListener('contextmenu',  globalPointerEnd, {passive:true}); // คลิกขวา
-
-// เผื่อ element lose capture
-stage.addEventListener('lostpointercapture', globalPointerEnd);
+// ถ้า pointer capture ของ canvas หลุดด้วยเหตุผลใดๆ → เคลียร์
+canvas.addEventListener('lostpointercapture', (e)=> {
+  // ถ้า capture ที่หลุด เป็นตัวเดียวกับ dragPointerId เท่านั้นค่อยเคลียร์
+  // (ป้องกันเคลียร์ตอนเราไม่ได้ลากอยู่)
+  if (dragPointerId === null || e.pointerId === dragPointerId) {
+    endAllPointers();
+  }
+});
 
 // wheel zoom (desktop)
 canvas.addEventListener('wheel',(e)=>{
