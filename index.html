@@ -3,14 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Canvas Playground — Drag • Pan • Zoom</title>
+  <title>sa-waddeee-kaa</title>
   <meta name="description" content="Canvas-like page with PNG elements (frame-1.png ...), drag, pan, and zoom.">
   <style>
-    :root{ --bgA:#d9f0ff; --bgB:#ffe7f7; --ring:rgba(0,0,0,.18); }
+    :root{
+      /* สีตามที่ขอ */
+      --blue:#81DBFC;   /* ฟ้า = center */
+      --green:#E3F2BD;  /* เขียว = edge  */
+      --ring:rgba(0,0,0,.18);
+    }
     *{box-sizing:border-box}
     html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Inter,Segoe UI,Roboto}
     body{
-      background: radial-gradient(circle at center, var(--bgA) 0%, var(--bgB) 100%);
+      /* ฟ้าอยู่กลาง → ไล่ไปเขียวที่ปลาย */
+      background: radial-gradient(
+        circle at center,
+        var(--blue) 0%,
+        var(--blue) 35%,
+        var(--green) 100%
+      );
     }
 
     .toolbar{
@@ -60,7 +71,7 @@
 (function(){
   /* ===== CONFIG ===== */
   const COUNT = 23;                       // ← แก้ให้ตรงกับจำนวนรูปจริง
-  const EXT   = 'png';                    // ← ใช้ png
+  const EXT   = 'png';
   const pathFor = i => `elements/frame-${i}.${EXT}`;
 
   const canvas = document.getElementById('canvas');
