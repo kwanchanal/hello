@@ -18,18 +18,14 @@
   <!-- main interaction (drag / resize / pan / zoom / persist) -->
   <script src="./script.js"></script>
 
-  <!-- inline: stagger animation on page load (ไม่แตะ .draggable) -->
+  <!-- inline: entrance animation (รวม .draggable และไม่ทับ drag/resize) -->
   <script>
     (function () {
+      // เรา animate ทุกอย่างรวม .draggable ด้วย
       const SELECTORS = [
-        '#stage > *:not(.draggable)',
-        '#stage img:not(.draggable)',
-        '#stage svg:not(.draggable)',
-        '.elements img:not(.draggable)',
-        '.elements svg:not(.draggable)',
-        '.elements > *:not(.draggable)',
-        'main img:not(.draggable)',
-        'main svg:not(.draggable)'
+        '#stage > *',
+        '#stage img',
+        '#stage svg'
       ];
 
       const STAGGER  = 90;   // หน่วงทีละชิ้น (ms)
@@ -38,21 +34,43 @@
 
       function animateNodes(nodes){
         nodes.forEach((el, i) => {
+          // ป้องกันซ้ำ ถ้ามี animation เก่าค้างอยู่ให้ยกเลิกก่อน
+          el.getAnimations?.().forEach(a => a.cancel());
+
           const anim = el.animate(
             [
-              { opacity: 0, transform: 'translateY(20px) scale(.96)', filter: 'blur(1.5px)' },
-              { opacity: 1, transform: 'translateY(0) scale(1)',      filter: 'blur(0)' }
+              { opacity: 0, transform: 'translateY(24px)' },
+              { opacity: 1, transform: 'translateY(0)' }
             ],
-            { duration: DURATION, delay: i * STAGGER, easing: EASING, fill: 'none' }
+            {
+              duration: DURATION,
+              delay: i * STAGGER,
+              easing: EASING,
+              fill: 'none' // จบแล้วคืนค่าเดิม ไม่ทับ transform จาก drag/resize
+            }
           );
-          // คืน style เดิมหลังจบ เพื่อไม่ทับ transform จากสคริปต์หลัก
-          anim.addEventListener('finish', () => anim.cancel());
+
+          // safety: เผื่อบางเบราว์เซอร์ cache ค่า frame สุดท้ายไว้
+          anim.addEventListener('finish', () => {
+            try { anim.cancel(); } catch {}
+          });
         });
+      }
+
+      // ถ้าผู้ใช้แตะ/ลาก element ไหนอยู่ ให้ยกเลิก entrance animation ของ element นั้นทันที
+      function cancelEntranceOnInteract(e) {
+        const el = e.target && e.target.closest && e.target.closest('#stage > *');
+        if (!el) return;
+        el.getAnimations?.().forEach(a => a.cancel());
       }
 
       window.addEventListener('load', () => {
         const els = Array.from(document.querySelectorAll(SELECTORS.join(',')));
         if (els.length) animateNodes(els);
+
+        // ยกเลิก animation เมื่อเริ่มโต้ตอบ
+        document.addEventListener('pointerdown', cancelEntranceOnInteract, { capture: true });
+        document.addEventListener('keydown', cancelEntranceOnInteract, { capture: true });
       }, { once: true });
     })();
   </script>
