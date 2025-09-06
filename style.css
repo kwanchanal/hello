@@ -1,109 +1,3 @@
-/* ============================
-   Canvas Playground — style.css
-   ============================ */
-
-:root {
-  --bg-blue:  #7ad3ff;   /* ฟ้ากลาง */
-  --bg-green: #d2f27a;   /* เขียวปลาย */
-  --shadow-md: 0 10px 25px rgba(0,0,0,.16);
-  --shadow-lg: 0 20px 50px rgba(0,0,0,.18);
-}
-
-* { box-sizing: border-box; }
-html, body {
-  height: 100%;
-  margin: 0;
-  font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-  background: #000;
-  overflow: hidden;      /* ให้ canvas คุมสกรอลล์เอง */
-}
-
-/* เต็มจอ + ปิด gesture เดิมของเบราเซอร์บนมือถือ */
-#canvas {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: radial-gradient(65% 65% at 50% 50%, var(--bg-blue) 0%, var(--bg-green) 100%);
-  touch-action: none;    /* สำคัญมากสำหรับ Pointer Events */
-}
-
-#stage {
-  position: absolute;
-  inset: 0;
-  transform-origin: 0 0;
-  will-change: transform;
-}
-
-/* elements */
-.draggable {
-  position: absolute;
-  user-select: none;
-  -webkit-user-drag: none;
-  pointer-events: auto;
-  filter: drop-shadow(0 8px 20px rgba(0,0,0,.2));
-  transition: box-shadow .15s ease;
-  cursor: grab;
-  touch-action: none;
-}
-.draggable:active {
-  cursor: grabbing;
-  filter: drop-shadow(0 14px 30px rgba(0,0,0,.26));
-}
-
-/* Hover bounce (จะทำงานเฉพาะเครื่องที่มี hover เช่น เมาส์) */
-@media (hover:hover) {
-  .draggable:hover { animation: hoverBounce .55s ease; }
-}
-@keyframes hoverBounce {
-  0%   { transform: translateY(0) scale(1); }
-  40%  { transform: translateY(-5px) scale(1.03); }
-  70%  { transform: translateY( 2px) scale(.995); }
-  100% { transform: translateY(0) scale(1); }
-}
-
-/* Staged entrance */
-.entrance { animation: popIn .5s cubic-bezier(.2,.65,.2,1) both; }
-@keyframes popIn {
-  0%   { opacity: 0; transform: scale(.88) translateY(10px); }
-  60%  { opacity: 1; transform: scale(1.04) translateY(-4px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
-}
-
-/* Selection box: เหลี่ยมสไตล์ Photoshop */
-.selection {
-  position: absolute;
-  border: 2px dashed #111;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  pointer-events: none;
-  z-index: 5;
-}
-
-/* Handles */
-.handle {
-  position: absolute;
-  width: 12px; height: 12px;
-  background: #fff;
-  border: 1px solid #111;
-  border-radius: 2px;
-  pointer-events: auto;
-  touch-action: none;
-}
-.handle.nw { left:-8px;  top:-8px; }
-.handle.ne { right:-8px; top:-8px; }
-.handle.sw { left:-8px;  bottom:-8px; }
-.handle.se { right:-8px; bottom:-8px; }
-
-/* Touch targets ใหญ่ขึ้นบนมือถือ */
-@media (max-width: 640px) {
-  .handle { width: 18px; height: 18px; }
-  .handle.nw { left:-10px;  top:-10px; }
-  .handle.ne { right:-10px; top:-10px; }
-  .handle.sw { left:-10px;  bottom:-10px; }
-  .handle.se { right:-10px; bottom:-10px; }
-}
-
 /* Hint pill */
 #hint {
   position: fixed;
@@ -119,14 +13,22 @@ html, body {
   font-weight: 700;
   color: #000;
   opacity: .9;
-  box-shadow: 0 4px 20px rgba(0,0,0,.12);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
   z-index: 10;
+
+  /* ทำให้ไม่ตัดคำ */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90vw; /* กันไม่ให้เกินขอบจอ */
 }
+
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
 @media (max-width: 640px) {
   #hint {
     font-size: 14px;
