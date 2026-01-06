@@ -3,39 +3,58 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>halooo world :P</title>
+  <title>HYD?</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%92%8C%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+  <!-- Canvas root that holds all draggable items -->
   <div id="canvas">
+    <!-- Stage is transformed for pan/zoom -->
     <div id="stage" aria-label="playground"></div>
   </div>
 
-  <!-- hint pill -->
-  <div class="hint" role="note">drag + zoom + resize + to play with me!</div>
+  <!-- Chat-style prompt pill at the bottom -->
+  <div class="hint" role="note" aria-label="prompt">
+    <span class="hint-text" aria-live="polite"></span>
+  </div>
 
-  <!-- main interaction -->
+  <div class="contact-bubble-wrap">
+    <div class="contact-bubble entering" role="group" aria-label="Contact details">
+      <span class="contact-label">Ping Me</span>
+      <span class="contact-value" data-masked="kwa*******@gmail.com" data-reveal="kwanchanok.phon@gmail.com">kwa*******@gmail.com</span>
+      <button class="contact-toggle" type="button" aria-label="Show full email" aria-pressed="false">
+        <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z"/>
+          <circle cx="12" cy="12" r="3.25"/>
+          <path class="eye-slash" d="M4 20 20 4"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Core interaction logic -->
   <script src="./script.js"></script>
 
-  <!-- Entrance animation: cinematic, once, no flicker -->
+  <!-- Entrance animation for elements marked with .entering -->
   <script>
     (function () {
-      // เราจะ animate เฉพาะที่มีคลาส .entering (ที่ script.js ใส่มาให้)
-      const SELECTOR = '#stage > .entering, #stage img.entering, #stage svg.entering';
+      // Only animate items explicitly marked for entrance.
+      const SELECTOR = '#stage > .entering, #stage img.entering, #stage svg.entering, .contact-bubble.entering';
 
-      // โทนเนิบ ๆ cinematic
-      const STAGGER  = 160;   // หน่วงทีละชิ้น (ms)
-      const DURATION = 1400;  // ระยะเวลา (ms)
+      // Animation timing and feel.
+      const STAGGER  = 160;
+      const DURATION = 1400;
       const EASING   = 'cubic-bezier(.16,.84,.16,1)';
 
-      function animateOnce(nodes){
+      // Run entrance animation once for the given nodes.
+      function animateOnce(nodes) {
         nodes.forEach((el, i) => {
-          // กันซ้ำ
+          // Cancel any running animations before starting a new one.
           el.getAnimations?.().forEach(a => a.cancel());
 
           const anim = el.animate(
             [
-              // ค่าจุดเริ่มตรงกับ .entering ใน CSS
               { opacity: 0, transform: 'translateY(48px) scale(0.92)' },
               { opacity: 1, transform: 'translateY(0) scale(1)' }
             ],
@@ -50,10 +69,12 @@
 
           anim.addEventListener('finish', () => {
             try {
-              anim.commitStyles();   // คงค่าปลายทาง
-              anim.cancel();         // แล้วล้าง animation timeline
+              // Commit final styles and remove animation timeline.
+              anim.commitStyles();
+              anim.cancel();
             } catch {}
-            el.classList.remove('entering'); // เอาคลาสซ่อนออก → ไม่มีแว็บ/กระพริบ
+            // Remove the entrance class to avoid replays.
+            el.classList.remove('entering');
           });
         });
       }
@@ -62,13 +83,12 @@
         const nodes = Array.from(document.querySelectorAll(SELECTOR));
         if (nodes.length) animateOnce(nodes);
 
-        // ถ้า user แตะ/ลากก่อนจบ ให้ยกเลิก animation ของ element นั้น
+        // If the user interacts early, stop animation and snap to end state.
         document.addEventListener('pointerdown', (e) => {
           const el = e.target.closest('#stage > *');
           if (!el) return;
           el.getAnimations?.().forEach(a => a.cancel());
           el.classList.remove('entering');
-          // ตั้งค่าให้เป็นปลายทางทันที เพื่อไม่ชักกระพริบ
           el.style.opacity = '1';
           el.style.transform = 'translateY(0) scale(1)';
         }, { capture: true });

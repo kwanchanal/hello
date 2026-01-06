@@ -1,7 +1,3 @@
-// =====================================================
-// Canvas Playground (center-by-content) + entrance helper
-// =====================================================
-
 const canvas = document.getElementById('canvas');
 const stage  = document.getElementById('stage');
 
@@ -12,7 +8,6 @@ const PERSIST_ON_MOBILE = false;
 const WHEEL_ZOOM_STEP = 0.001;
 const SCALE_MIN = 0.3, SCALE_MAX = 3;
 
-// Desktop layout (fixed)
 const desktopLayout = {
   "frame-1":  { "x": 646.51,  "y": -281.271, "w": 300 },
   "frame-2":  { "x": 75.6457, "y": -184.501, "w": 300 },
@@ -39,7 +34,6 @@ const desktopLayout = {
   "frame-23": { "x": -579.162,"y": 699.192,  "w": 300 }
 };
 
-// Mobile random (each load)
 function computeMobileLayoutRandom() {
   const ids = Array.from({ length: IMAGE_COUNT }, (_, i) => `frame-${i + 1}`);
   const layout = {};
@@ -49,7 +43,6 @@ function computeMobileLayoutRandom() {
   return layout;
 }
 
-// Persist
 function loadSavedLayout() {
   if (IS_MOBILE && !PERSIST_ON_MOBILE) return {};
   try { return JSON.parse(localStorage.getItem(PERSIST_KEY) || '{}'); }
@@ -70,7 +63,6 @@ function saveLayoutNow() {
 }
 const saveLayout = (()=>{let t=null;return()=>{clearTimeout(t);t=setTimeout(saveLayoutNow,120);};})();
 
-// Build DOM (ใส่คลาส .entering เพื่อให้ index เล่น animation ได้ลื่น ไม่แว็บ)
 const els = [];
 const loadPromises = [];
 for (let i = 1; i <= IMAGE_COUNT; i++) {
@@ -104,15 +96,14 @@ function applyLayout(layout) {
 }
 applyLayout(initialLayout);
 
-// Pan & Zoom (transform from top-left origin)
 let scale = IS_MOBILE ? 0.6 : 0.5;
+const STAGE_OFFSET_Y = -60;
 let originX = 0, originY = 0;
 function applyTransform() {
-  stage.style.transform = `translate(${originX}px, ${originY}px) scale(${scale})`;
+  stage.style.transform = `translate(${originX}px, ${originY + STAGE_OFFSET_Y}px) scale(${scale})`;
 }
 applyTransform();
 
-// Center stage by content
 function centerStageOnContent() {
   if (!els.length) return;
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -137,7 +128,6 @@ Promise.all(loadPromises).then(() => {
   if (!IS_MOBILE && !Object.keys(saved).length) saveLayoutNow();
 });
 
-// Wheel zoom
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
   const prev = scale;
@@ -152,7 +142,6 @@ canvas.addEventListener('wheel', (e) => {
   applyTransform();
 }, {passive:false});
 
-// Pinch zoom (touch)
 const pointerMap = new Map();
 function pinchInfo(){
   const pts = [...pointerMap.values()];
@@ -178,7 +167,6 @@ canvas.addEventListener('pointerdown', e => pointerMap.set(e.pointerId, {x:e.cli
   window.addEventListener(ev, e => { pointerMap.delete(e.pointerId); if (pointerMap.size < 2) pinchState = null; });
 });
 
-// Selection + Drag + Resize
 let selection=null,resizing=null;
 function showSelection(el){
   hideSelection();
@@ -213,7 +201,6 @@ stage.addEventListener('pointerdown', e => {
   const el = e.target.closest('img.draggable');
   if (!el) { hideSelection(); return; }
 
-  // ยกเลิก entrance animation ของ element นั้น (ถ้ายังเล่นอยู่)
   el.getAnimations?.().forEach(a => a.cancel());
   el.classList.remove('entering');
 
@@ -261,3 +248,64 @@ function onResizeMove(e){
   saveLayout();
 }
 function endResize(){ saveLayoutNow(); resizing=null; }
+
+const hintText = document.querySelector('.hint-text');
+if (hintText) {
+  const prefixText = "Hello! It’s Kwan\nNice seeing you here\nJust drag and play for fun here\n\n";
+  const phrases = ["How are you today?", "What are you looking for?"];
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersReduced) {
+    hintText.textContent = prefixText + phrases[0];
+  } else {
+    let phraseIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+
+    const typeDelay = 55;
+    const deleteDelay = 30;
+    const holdDelay = 1200;
+
+    const tick = () => {
+      const current = phrases[phraseIndex];
+      if (!isDeleting) {
+        charIndex = Math.min(current.length, charIndex + 1);
+      } else {
+        charIndex = Math.max(0, charIndex - 1);
+      }
+
+      hintText.textContent = prefixText + current.slice(0, charIndex);
+
+      if (!isDeleting && charIndex === current.length) {
+        isDeleting = true;
+        setTimeout(tick, holdDelay);
+        return;
+      }
+
+      if (isDeleting && charIndex === 0) {
+        isDeleting = false;
+        phraseIndex = (phraseIndex + 1) % phrases.length;
+        setTimeout(tick, typeDelay);
+        return;
+      }
+
+      setTimeout(tick, isDeleting ? deleteDelay : typeDelay);
+    };
+
+    tick();
+  }
+}
+
+const contactValue = document.querySelector('.contact-value');
+const contactToggle = document.querySelector('.contact-toggle');
+if (contactValue && contactToggle) {
+  const masked = contactValue.dataset.masked || '**********';
+  const reveal = contactValue.dataset.reveal || '';
+  contactValue.textContent = masked;
+
+  contactToggle.addEventListener('click', () => {
+    const isMasked = contactValue.textContent === masked;
+    contactValue.textContent = isMasked ? reveal : masked;
+    contactToggle.setAttribute('aria-pressed', String(isMasked));
+    contactToggle.setAttribute('aria-label', isMasked ? 'Hide full email' : 'Show full email');
+  });
+}

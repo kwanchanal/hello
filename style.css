@@ -1,4 +1,3 @@
-/* Base */
 html, body {
   margin: 0;
   padding: 0;
@@ -23,7 +22,6 @@ html, body {
   transform-origin: 0 0;
 }
 
-/* ชิ้นงาน */
 #stage .draggable {
   position: absolute;
   cursor: grab;
@@ -33,14 +31,12 @@ html, body {
 }
 #stage .draggable:active { cursor: grabbing; }
 
-/* สถานะเริ่มต้นของ entrance (กันเฟรมแวบ) */
 #stage .entering {
   opacity: 0;
   transform: translateY(48px) scale(0.92);
   will-change: transform, opacity;
 }
 
-/* hover bounce เล็กน้อย */
 @keyframes kw_bounce {
   0% { transform: scale(.98); }
   50%{ transform: scale(1.04); }
@@ -48,7 +44,6 @@ html, body {
 }
 .hover-bounce:hover { animation: kw_bounce .8s cubic-bezier(.2,.75,.25,1.2); }
 
-/* selection & handles */
 .kw-selection {
   position: absolute;
   border: 2px dashed rgba(0,0,0,.35);
@@ -69,19 +64,116 @@ html, body {
 .kw-handle[data-pos="sw"]{ left:-6px; bottom:-6px; cursor:nesw-resize; }
 .kw-handle[data-pos="se"]{ right:-6px; bottom:-6px; cursor:nwse-resize; }
 
-/* hint */
 .hint {
   position: absolute;
   left: 50%;
-  bottom: 18px;
+  bottom: 70px;
   transform: translateX(-50%);
-  background: rgba(255, 200, 210, 0.9);
-  color: #1f2937;
-  padding: 10px 16px;
-  border-radius: 16px;
-  font-weight: 700;
-  font-size: 14px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.25);
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 320px;
+  padding: 10px 14px;
+  background: #ffffff;
+  color: #1b1f24;
+  border-radius: 18px;
+  font-size: 13px;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  box-shadow: 0 6px 18px rgba(16,24,40,.14), 0 2px 6px rgba(16,24,40,.08);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  white-space: normal;
+}
+
+.hint-text {
+  display: inline;
+  white-space: pre-line;
+}
+
+.hint-text::after {
+  content: "|";
+  display: inline-block;
+  width: 8px;
+  margin-left: 2px;
+  animation: blink 1s steps(2, start) infinite;
+  color: #1b1f24;
+}
+
+.contact-bubble-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(260px, -110px);
+}
+
+.contact-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  color: #1b1f24;
+  font-size: 13px;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  box-shadow: 0 6px 18px rgba(16,24,40,.14), 0 2px 6px rgba(16,24,40,.08);
   white-space: nowrap;
-  pointer-events: none;
+}
+
+.contact-bubble::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: #ffffff;
+  border-left: 1px solid rgba(15, 23, 42, 0.08);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  transform: rotate(45deg);
+}
+
+.contact-label {
+  font-weight: 600;
+}
+
+.contact-value {
+  color: #2563eb;
+}
+
+.contact-toggle {
+  border: 0;
+  background: transparent;
+  padding: 2px;
+  margin-left: 2px;
+  cursor: pointer;
+}
+
+.eye-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: #1b1f24;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.eye-icon circle {
+  fill: #1b1f24;
+  stroke: none;
+}
+
+.eye-icon .eye-slash {
+  opacity: 0;
+}
+
+.contact-toggle[aria-pressed="true"] .eye-icon .eye-slash {
+  opacity: 1;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
