@@ -173,6 +173,19 @@ html, body {
   opacity: 1;
 }
 
+@media (max-width: 640px) {
+  .contact-bubble-wrap {
+    left: 50%;
+    top: 55%;
+    transform: translate(-50%, -50%);
+  }
+
+  .contact-bubble::after {
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
+}
+
 @keyframes blink {
   0%, 50% { opacity: 1; }
   50.01%, 100% { opacity: 0; }
