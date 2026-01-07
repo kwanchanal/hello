@@ -135,6 +135,7 @@ html, body {
   left: 50%;
   top: 50%;
   transform: translate(260px, -110px);
+  z-index: 3;
 }
 
 .contact-bubble-wrap-left {
@@ -176,6 +177,10 @@ html, body {
   max-width: 260px;
 }
 
+.contact-bubble-left .contact-label {
+  font-weight: 400;
+}
+
 .contact-bubble-left::after {
   left: auto;
   right: 18px;
@@ -183,7 +188,7 @@ html, body {
 }
 
 .contact-label {
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .contact-value {
