@@ -16,12 +16,17 @@
 
   <!-- Chat-style prompt pill at the bottom -->
   <div class="hint" role="note" aria-label="prompt">
+    <div class="hint-header" aria-hidden="true">
+      <span class="hint-dot hint-dot-red"></span>
+      <span class="hint-dot hint-dot-yellow"></span>
+      <span class="hint-dot hint-dot-green"></span>
+    </div>
     <span class="hint-text" aria-live="polite"></span>
   </div>
 
   <div class="contact-bubble-wrap">
     <div class="contact-bubble entering" role="group" aria-label="Contact details">
-      <span class="contact-label">Ping Me</span>
+      <span class="contact-label">Find Me</span>
       <span class="contact-value" data-masked="kwa*******@gmail.com" data-reveal="kwanchanok.phon@gmail.com">kwa*******@gmail.com</span>
       <button class="contact-toggle" type="button" aria-label="Show full email" aria-pressed="false">
         <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -32,6 +37,25 @@
       </button>
     </div>
   </div>
+
+  <div class="contact-bubble-wrap contact-bubble-wrap-left">
+    <div class="contact-bubble contact-bubble-left entering" role="note" aria-label="Interaction hint">
+      <span class="contact-label">This site is Interactive</span>
+      <span class="contact-value">Play with Emoji as you want</span>
+    </div>
+  </div>
+
+  <a class="work-bubble-wrap" href="https://kwanchanal.framer.website/" target="_blank" rel="noopener noreferrer" aria-label="Work credentials">
+    <div class="work-bubble entering">
+      <span class="work-bubble-label">Work Credentials 🙋🏻‍♀️</span>
+    </div>
+  </a>
+
+  <button class="audio-toggle" type="button" aria-label="Pause music" aria-pressed="true">
+    <span class="audio-icon" aria-hidden="true">🎧</span>
+    <span class="audio-label">Pause</span>
+  </button>
+  <audio id="bg-music" src="./audio/Carmen Act.mp3" preload="auto" autoplay loop></audio>
 
   <!-- Core interaction logic -->
   <script src="./script.js"></script>

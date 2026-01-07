@@ -27,7 +27,7 @@ const desktopLayout = {
   "frame-16": { "x": -677.793,"y": 481.315,  "w": 300 },
   "frame-17": { "x": 1546.96, "y": 442.999,  "w": 300 },
   "frame-18": { "x": 1438.88, "y": 757.966,  "w": 300 },
-  "frame-19": { "x": 456.796, "y": 615.772,  "w": 422.33 },
+  "frame-19": { "x": 456.796, "y": 645.772,  "w": 422.33 },
   "frame-20": { "x": 1068.47, "y": 641.17,   "w": 300 },
   "frame-21": { "x": 962.906, "y": -127.276, "w": 300 },
   "frame-22": { "x": 476.185, "y": 106.032,  "w": 413.955 },
@@ -97,7 +97,7 @@ function applyLayout(layout) {
 applyLayout(initialLayout);
 
 let scale = IS_MOBILE ? 0.6 : 0.5;
-const STAGE_OFFSET_Y = -60;
+const STAGE_OFFSET_Y = -40;
 let originX = 0, originY = 0;
 function applyTransform() {
   stage.style.transform = `translate(${originX}px, ${originY + STAGE_OFFSET_Y}px) scale(${scale})`;
@@ -128,44 +128,6 @@ Promise.all(loadPromises).then(() => {
   if (!IS_MOBILE && !Object.keys(saved).length) saveLayoutNow();
 });
 
-canvas.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  const prev = scale;
-  const delta = -e.deltaY * WHEEL_ZOOM_STEP;
-  scale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, scale + delta));
-
-  const r = stage.getBoundingClientRect();
-  const mx = (e.clientX - r.left) / prev;
-  const my = (e.clientY - r.top ) / prev;
-  originX = e.clientX - mx * scale;
-  originY = e.clientY - my * scale;
-  applyTransform();
-}, {passive:false});
-
-const pointerMap = new Map();
-function pinchInfo(){
-  const pts = [...pointerMap.values()];
-  if (pts.length < 2) return null;
-  const [a,b] = pts;
-  return { cx:(a.x+b.x)/2, cy:(a.y+b.y)/2, dist:Math.hypot(b.x-a.x, b.y-a.y) };
-}
-let pinchState = null;
-window.addEventListener('pointermove', (e) => {
-  if (pointerMap.size >= 2 && e.pointerType !== 'mouse') {
-    const info = pinchInfo(); if (!info) return;
-    if (!pinchState) {
-      pinchState = { startDist: info.dist, startScale: scale };
-    } else {
-      const k = info.dist / pinchState.startDist;
-      scale = Math.min(SCALE_MAX, Math.max(SCALE_MIN, pinchState.startScale * k));
-      applyTransform();
-    }
-  }
-},{passive:false});
-canvas.addEventListener('pointerdown', e => pointerMap.set(e.pointerId, {x:e.clientX,y:e.clientY}));
-['pointerup','pointercancel','pointerout'].forEach(ev=>{
-  window.addEventListener(ev, e => { pointerMap.delete(e.pointerId); if (pointerMap.size < 2) pinchState = null; });
-});
 
 let selection=null,resizing=null;
 function showSelection(el){
@@ -251,14 +213,16 @@ function endResize(){ saveLayoutNow(); resizing=null; }
 
 const hintText = document.querySelector('.hint-text');
 if (hintText) {
-  const prefixText = "Hello! It’s Kwan\nNice seeing you here\nJust drag and play for fun here\n\n";
+  const prefixText = "Hello! It’s Kwan\nNice seeing you here\n\n";
   const phrases = ["How are you today?", "What are you looking for?"];
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (prefersReduced) {
     hintText.textContent = prefixText + phrases[0];
   } else {
     let phraseIndex = 0;
-    let charIndex = 0;
+    let introIndex = 0;
+    let phraseCharIndex = 0;
+    let introDone = false;
     let isDeleting = false;
 
     const typeDelay = 55;
@@ -267,21 +231,30 @@ if (hintText) {
 
     const tick = () => {
       const current = phrases[phraseIndex];
-      if (!isDeleting) {
-        charIndex = Math.min(current.length, charIndex + 1);
-      } else {
-        charIndex = Math.max(0, charIndex - 1);
+
+      if (!introDone) {
+        introIndex = Math.min(prefixText.length, introIndex + 1);
+        hintText.textContent = prefixText.slice(0, introIndex);
+        if (introIndex === prefixText.length) introDone = true;
+        setTimeout(tick, typeDelay);
+        return;
       }
 
-      hintText.textContent = prefixText + current.slice(0, charIndex);
+      if (!isDeleting) {
+        phraseCharIndex = Math.min(current.length, phraseCharIndex + 1);
+      } else {
+        phraseCharIndex = Math.max(0, phraseCharIndex - 1);
+      }
 
-      if (!isDeleting && charIndex === current.length) {
+      hintText.textContent = prefixText + current.slice(0, phraseCharIndex);
+
+      if (!isDeleting && phraseCharIndex === current.length) {
         isDeleting = true;
         setTimeout(tick, holdDelay);
         return;
       }
 
-      if (isDeleting && charIndex === 0) {
+      if (isDeleting && phraseCharIndex === 0) {
         isDeleting = false;
         phraseIndex = (phraseIndex + 1) % phrases.length;
         setTimeout(tick, typeDelay);
@@ -308,4 +281,34 @@ if (contactValue && contactToggle) {
     contactToggle.setAttribute('aria-pressed', String(isMasked));
     contactToggle.setAttribute('aria-label', isMasked ? 'Hide full email' : 'Show full email');
   });
+}
+
+const audioToggle = document.querySelector('.audio-toggle');
+const audioEl = document.getElementById('bg-music');
+if (audioToggle && audioEl) {
+  const audioLabel = audioToggle.querySelector('.audio-label');
+  const setState = (playing) => {
+    audioToggle.setAttribute('aria-pressed', String(playing));
+    audioToggle.setAttribute('aria-label', playing ? 'Pause music' : 'Play music');
+    if (audioLabel) audioLabel.textContent = playing ? 'Pause' : 'Play';
+  };
+  setState(!audioEl.paused);
+
+  audioToggle.addEventListener('click', async () => {
+    if (audioEl.paused) {
+      try {
+        await audioEl.play();
+        setState(true);
+      } catch {
+        setState(false);
+      }
+    } else {
+      audioEl.pause();
+      setState(false);
+    }
+  });
+
+  audioEl.addEventListener('ended', () => setState(false));
+  audioEl.addEventListener('play', () => setState(true));
+  audioEl.addEventListener('pause', () => setState(false));
 }

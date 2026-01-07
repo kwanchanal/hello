@@ -44,6 +44,16 @@ html, body {
 }
 .hover-bounce:hover { animation: kw_bounce .8s cubic-bezier(.2,.75,.25,1.2); }
 
+@keyframes kw_float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+#stage img[data-id="frame-22"] {
+  animation: kw_float 2s ease-in-out infinite;
+  will-change: transform;
+}
+
 .kw-selection {
   position: absolute;
   border: 2px dashed rgba(0,0,0,.35);
@@ -67,13 +77,13 @@ html, body {
 .hint {
   position: absolute;
   left: 50%;
-  bottom: 70px;
+  top: 70px;
   transform: translateX(-50%);
   display: inline-flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: stretch;
   gap: 4px;
   min-width: 320px;
-  padding: 10px 14px;
   background: #ffffff;
   color: #1b1f24;
   border-radius: 18px;
@@ -82,11 +92,33 @@ html, body {
   box-shadow: 0 6px 18px rgba(16,24,40,.14), 0 2px 6px rgba(16,24,40,.08);
   border: 1px solid rgba(15, 23, 42, 0.08);
   white-space: normal;
+  overflow: hidden;
 }
+
+.hint-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.hint-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+}
+
+.hint-dot-red { background: #ff5f57; }
+.hint-dot-yellow { background: #febc2e; }
+.hint-dot-green { background: #28c840; }
 
 .hint-text {
   display: inline;
   white-space: pre-line;
+  padding: 10px 14px 12px;
 }
 
 .hint-text::after {
@@ -103,6 +135,10 @@ html, body {
   left: 50%;
   top: 50%;
   transform: translate(260px, -110px);
+}
+
+.contact-bubble-wrap-left {
+  transform: translate(-420px, -140px);
 }
 
 .contact-bubble {
@@ -131,6 +167,19 @@ html, body {
   border-left: 1px solid rgba(15, 23, 42, 0.08);
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   transform: rotate(45deg);
+}
+
+.contact-bubble-left {
+  flex-direction: column;
+  align-items: flex-start;
+  white-space: normal;
+  max-width: 260px;
+}
+
+.contact-bubble-left::after {
+  left: auto;
+  right: 18px;
+  transform: rotate(225deg);
 }
 
 .contact-label {
@@ -173,6 +222,29 @@ html, body {
   opacity: 1;
 }
 
+.audio-toggle {
+  position: absolute;
+  right: 24px;
+  top: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  color: #1b1f24;
+  font-size: 12px;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  box-shadow: 0 6px 18px rgba(16,24,40,.14), 0 2px 6px rgba(16,24,40,.08);
+  cursor: pointer;
+}
+
+.audio-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
 @media (max-width: 640px) {
   .contact-bubble-wrap {
     left: 50%;
@@ -184,9 +256,81 @@ html, body {
     left: 50%;
     transform: translateX(-50%) rotate(45deg);
   }
+
+  .contact-bubble-wrap-left {
+    top: 42%;
+    transform: translate(-50%, -50%);
+  }
+
+  .contact-bubble-left::after {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) rotate(45deg);
+  }
+}
+
+.work-bubble-wrap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-140px, 10px);
+  text-decoration: none;
+}
+
+.work-bubble {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: #34c759;
+  color: #ffffff;
+  font-size: 13px;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  box-shadow: 0 10px 22px rgba(16,24,40,.18), 0 2px 6px rgba(16,24,40,.12);
+  animation: work-bubble-cute 1.4s ease-in-out infinite;
+}
+
+.work-bubble-wrap:hover .work-bubble {
+  animation: work-bubble-cute 0.8s ease-in-out infinite;
+}
+
+.work-bubble::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: #34c759;
+  transform: rotate(45deg);
+}
+
+.work-bubble-label {
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .work-bubble-wrap {
+    left: 50%;
+    top: 76%;
+    transform: translate(-50%, -50%);
+  }
+
+  .work-bubble::after {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+  }
 }
 
 @keyframes blink {
   0%, 50% { opacity: 1; }
   50.01%, 100% { opacity: 0; }
+}
+
+@keyframes work-bubble-cute {
+  0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
+  30% { transform: translateY(-2px) scale(1.02) rotate(-1.2deg); }
+  55% { transform: translateY(1px) scale(0.99) rotate(1.2deg); }
+  75% { transform: translateY(-1px) scale(1.01) rotate(0deg); }
 }
