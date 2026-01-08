@@ -100,6 +100,15 @@
             // Remove the entrance class to avoid replays.
             el.classList.remove('entering');
           });
+
+          // Safari fallback: ensure we clear the entering state even if finish doesn't fire.
+          setTimeout(() => {
+            if (el.classList.contains('entering')) {
+              el.classList.remove('entering');
+              el.style.opacity = '1';
+              el.style.transform = 'translateY(0) scale(1)';
+            }
+          }, DURATION + (i * STAGGER) + 80);
         });
       }
 
