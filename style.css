@@ -45,13 +45,16 @@ html, body {
 .hover-bounce:hover { animation: kw_bounce .8s cubic-bezier(.2,.75,.25,1.2); }
 
 @keyframes kw_float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -16px, 0); }
 }
 
-#stage img[data-id="frame-22"] {
-  animation: kw_float 2s ease-in-out infinite;
+.float-target {
   will-change: transform;
+}
+
+.float-emoji {
+  animation: kw_float 2s ease-in-out infinite;
 }
 
 .kw-selection {

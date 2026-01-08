@@ -70,6 +70,12 @@ for (let i = 1; i <= IMAGE_COUNT; i++) {
   el.src = `elements/frame-${i}.png`;
   el.className = 'draggable hover-bounce entering';
   el.dataset.id = `frame-${i}`;
+  if (el.dataset.id === 'frame-22') {
+    el.classList.add('float-target', 'entering-first');
+    const startFloat = () => requestAnimationFrame(() => el.classList.add('float-emoji'));
+    if (el.complete) startFloat();
+    else el.addEventListener('load', startFloat, { once: true });
+  }
   el.draggable = false;
   el.addEventListener('dragstart', e => e.preventDefault());
   stage.appendChild(el);
@@ -163,7 +169,9 @@ stage.addEventListener('pointerdown', e => {
   const el = e.target.closest('img.draggable');
   if (!el) { hideSelection(); return; }
 
-  el.getAnimations?.().forEach(a => a.cancel());
+  if (!el.classList.contains('float-emoji')) {
+    el.getAnimations?.().forEach(a => a.cancel());
+  }
   el.classList.remove('entering');
 
   active = el;

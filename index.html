@@ -69,22 +69,32 @@
       // Animation timing and feel.
       const STAGGER  = 160;
       const DURATION = 1400;
+      const FLOAT_DURATION = 520;
       const EASING   = 'cubic-bezier(.16,.84,.16,1)';
 
       // Run entrance animation once for the given nodes.
       function animateOnce(nodes) {
-        nodes.forEach((el, i) => {
+        const ordered = [
+          ...nodes.filter(el => el.classList.contains('entering-first')),
+          ...nodes.filter(el => !el.classList.contains('entering-first'))
+        ];
+        ordered.forEach((el, i) => {
           // Cancel any running animations before starting a new one.
           el.getAnimations?.().forEach(a => a.cancel());
 
+          const isFloat = el.classList.contains('float-target');
+          const keyframes = isFloat
+            ? [{ opacity: 0 }, { opacity: 1 }]
+            : [
+                { opacity: 0, transform: 'translateY(48px) scale(0.92)' },
+                { opacity: 1, transform: 'translateY(0) scale(1)' }
+              ];
+
           const anim = el.animate(
-            [
-              { opacity: 0, transform: 'translateY(48px) scale(0.92)' },
-              { opacity: 1, transform: 'translateY(0) scale(1)' }
-            ],
+            keyframes,
             {
-              duration: DURATION,
-              delay: i * STAGGER,
+              duration: isFloat ? FLOAT_DURATION : DURATION,
+              delay: isFloat ? 0 : i * STAGGER,
               easing: EASING,
               fill: 'forwards',
               composite: 'replace'
@@ -106,9 +116,9 @@
             if (el.classList.contains('entering')) {
               el.classList.remove('entering');
               el.style.opacity = '1';
-              el.style.transform = 'translateY(0) scale(1)';
+              if (!isFloat) el.style.transform = 'translateY(0) scale(1)';
             }
-          }, DURATION + (i * STAGGER) + 80);
+          }, (isFloat ? FLOAT_DURATION : DURATION) + (isFloat ? 0 : (i * STAGGER)) + 80);
         });
       }
 
@@ -120,10 +130,14 @@
         document.addEventListener('pointerdown', (e) => {
           const el = e.target.closest('#stage > *');
           if (!el) return;
-          el.getAnimations?.().forEach(a => a.cancel());
+          if (!el.classList.contains('float-target')) {
+            el.getAnimations?.().forEach(a => a.cancel());
+          }
           el.classList.remove('entering');
           el.style.opacity = '1';
-          el.style.transform = 'translateY(0) scale(1)';
+          if (!el.classList.contains('float-target')) {
+            el.style.transform = 'translateY(0) scale(1)';
+          }
         }, { capture: true });
       }, { once: true });
     })();
