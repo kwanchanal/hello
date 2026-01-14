@@ -191,6 +191,42 @@ body.work-slider-active .work-dock {
   font-weight: 400;
 }
 
+.work-service-bubble {
+  position: absolute;
+  left: 50%;
+  top: 4.5%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background: #34c759;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  box-shadow: 0 10px 22px rgba(16, 24, 40, 0.18), 0 2px 6px rgba(16, 24, 40, 0.12);
+  animation: work-bubble-cute 1.4s ease-in-out infinite;
+  z-index: 120;
+  transform: translateX(-50%);
+}
+
+.work-service-bubble::after {
+  content: "";
+  position: absolute;
+  right: 22px;
+  bottom: -6px;
+  width: 12px;
+  height: 12px;
+  background: #34c759;
+  transform: rotate(45deg);
+}
+
+.work-service-bubble:hover {
+  animation: work-bubble-cute 0.8s ease-in-out infinite;
+}
 .work-video-label {
   position: absolute;
   left: 50%;
@@ -1076,24 +1112,30 @@ body.work-stack-active .work-stack {
     align-items: center;
     gap: 26px;
     min-height: 100%;
-    padding: 140px 0 320px;
+    padding: 180px 0 220px;
+  }
+
+  .work-service-bubble {
+    order: 1;
+    position: static;
+    margin-top: 40px;
   }
 
   .work-sticker {
-    order: 1;
-    margin-top: 160px;
-  }
-
-  .work-video-card-lisa {
     order: 2;
+    margin-top: 0;
   }
 
   .work-video-card {
     order: 3;
   }
 
-  .work-stack {
+  .work-video-card-lisa {
     order: 4;
+  }
+
+  .work-stack {
+    order: 5;
     position: static;
     align-self: center;
     transform: translateX(1px);
@@ -1104,23 +1146,23 @@ body.work-stack-active .work-stack {
   }
 
   .work-stack-website {
-    order: 5;
-  }
-
-  .work-stack-press {
     order: 6;
   }
 
-  .desktop-icon-resume {
+  .work-stack-press {
     order: 7;
   }
 
-  .work-stack-creative {
+  .desktop-icon-resume {
     order: 8;
   }
 
-  .desktop-icon-group {
+  .work-stack-creative {
     order: 9;
+  }
+
+  .desktop-icon-group {
+    order: 10;
   }
 
   .work-gallery {
