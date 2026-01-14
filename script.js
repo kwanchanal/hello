@@ -2,6 +2,7 @@ const canvas = document.getElementById('canvas');
 const stage  = document.getElementById('stage');
 
 const IMAGE_COUNT = 23;
+const SKIP_IDS = new Set(['frame-6']);
 const IS_MOBILE = window.matchMedia('(max-width: 640px)').matches;
 const PERSIST_KEY = 'hello-layout-v3';
 const PERSIST_ON_MOBILE = false;
@@ -9,7 +10,7 @@ const WHEEL_ZOOM_STEP = 0.001;
 const SCALE_MIN = 0.3, SCALE_MAX = 3;
 
 const desktopLayout = {
-  "frame-1":  { "x": 646.51,  "y": -281.271, "w": 300 },
+  "frame-1":  { "x": 1050,  "y": -400, "w": 300 },
   "frame-2":  { "x": 75.6457, "y": -184.501, "w": 300 },
   "frame-3":  { "x": 1222.89, "y": 128.086,  "w": 300 },
   "frame-4":  { "x": 1630.49, "y": 102.215,  "w": 256.25 },
@@ -30,7 +31,7 @@ const desktopLayout = {
   "frame-19": { "x": 456.796, "y": 645.772,  "w": 422.33 },
   "frame-20": { "x": 1068.47, "y": 641.17,   "w": 300 },
   "frame-21": { "x": 962.906, "y": -127.276, "w": 300 },
-  "frame-22": { "x": 476.185, "y": 106.032,  "w": 413.955 },
+  "frame-22": { "x": 476.185, "y": 106.032,  "w": 350 },
   "frame-23": { "x": -579.162,"y": 699.192,  "w": 300 }
 };
 
@@ -52,6 +53,7 @@ function saveLayoutNow() {
   if (IS_MOBILE && !PERSIST_ON_MOBILE) return;
   const obj = {};
   stage.querySelectorAll('.draggable').forEach(el => {
+    if (el.dataset.id === 'folder') return;
     obj[el.dataset.id] = {
       x: parseFloat(el.style.left) || 0,
       y: parseFloat(el.style.top)  || 0,
@@ -66,15 +68,14 @@ const saveLayout = (()=>{let t=null;return()=>{clearTimeout(t);t=setTimeout(save
 const els = [];
 const loadPromises = [];
 for (let i = 1; i <= IMAGE_COUNT; i++) {
+  const id = `frame-${i}`;
+  if (SKIP_IDS.has(id)) continue;
   const el = document.createElement('img');
-  el.src = `elements/frame-${i}.png`;
+  el.src = `elements/${id}.png`;
   el.className = 'draggable hover-bounce entering';
-  el.dataset.id = `frame-${i}`;
+  el.dataset.id = id;
   if (el.dataset.id === 'frame-22') {
-    el.classList.add('float-target', 'entering-first');
-    const startFloat = () => requestAnimationFrame(() => el.classList.add('float-emoji'));
-    if (el.complete) startFloat();
-    else el.addEventListener('load', startFloat, { once: true });
+    el.classList.add('entering-first');
   }
   el.draggable = false;
   el.addEventListener('dragstart', e => e.preventDefault());
@@ -87,8 +88,46 @@ for (let i = 1; i <= IMAGE_COUNT; i++) {
   }));
 }
 
+const folderDesktopPos = { x: 0, y: 0 };
+const folderMobilePos = { x: 0, y: 0 };
+const folderDefaultSize = { w: 300, h: 300 };
+const folderMobileSize = { w: 250, h: 250 };
+
+const folderWrap = document.createElement('div');
+folderWrap.className = 'folder-item entering';
+folderWrap.dataset.id = 'folder';
+folderWrap.style.zIndex = '200';
+folderWrap.style.left = (IS_MOBILE ? folderMobilePos.x : folderDesktopPos.x) + 'px';
+folderWrap.style.top = (IS_MOBILE ? folderMobilePos.y : folderDesktopPos.y) + 'px';
+
+const folderImg = document.createElement('img');
+folderImg.src = 'icon/File.png';
+folderImg.alt = 'Works';
+folderImg.draggable = false;
+folderImg.addEventListener('dragstart', e => e.preventDefault());
+
+const folderLabel = document.createElement('span');
+folderLabel.className = 'folder-label';
+folderLabel.textContent = 'Works';
+
+const folderTooltip = document.createElement('span');
+folderTooltip.className = 'folder-tooltip';
+folderTooltip.textContent = 'Explore';
+
+folderWrap.appendChild(folderImg);
+folderWrap.appendChild(folderLabel);
+folderWrap.appendChild(folderTooltip);
+stage.appendChild(folderWrap);
+
+const folderSize = IS_MOBILE ? folderMobileSize : folderDefaultSize;
+folderImg.style.width = folderSize.w + 'px';
+folderImg.style.height = folderSize.h + 'px';
+
 const saved = loadSavedLayout();
-const initialLayout = (Object.keys(saved).length ? saved : (IS_MOBILE ? computeMobileLayoutRandom() : desktopLayout));
+const initialLayout = IS_MOBILE ? computeMobileLayoutRandom() : desktopLayout;
+if (!IS_MOBILE && Object.keys(saved).length) {
+  try { localStorage.removeItem(PERSIST_KEY); } catch {}
+}
 
 function applyLayout(layout) {
   els.forEach(el => {
@@ -131,7 +170,28 @@ function centerStageOnContent() {
 
 Promise.all(loadPromises).then(() => {
   centerStageOnContent();
-  if (!IS_MOBILE && !Object.keys(saved).length) saveLayoutNow();
+  if (folderWrap) {
+    if (IS_MOBILE) {
+      const viewW = canvas.clientWidth;
+      const viewH = canvas.clientHeight;
+      const target = stageLocalXY(viewW / 2, viewH / 2);
+      const size = folderMobileSize;
+      folderWrap.style.left = (target.x - size.w / 2) + 'px';
+      folderWrap.style.top = (target.y + viewH * 0.48 - size.h / 2) + 'px';
+    } else {
+      const viewW = canvas.clientWidth;
+      const viewH = canvas.clientHeight;
+      const target = stageLocalXY(viewW / 2, viewH / 2);
+      const size = folderDefaultSize;
+      folderWrap.style.left = (target.x - size.w / 2 - (viewW * 0.15)) + 'px';
+      folderWrap.style.top = (target.y + viewH * 0.18 - size.h / 2) + 'px';
+    }
+    folderWrap.style.zIndex = '200';
+    const size = IS_MOBILE ? folderMobileSize : folderDefaultSize;
+    folderImg.style.width = size.w + 'px';
+    folderImg.style.height = size.h + 'px';
+  }
+  if (!IS_MOBILE) saveLayoutNow();
 });
 
 

@@ -8,57 +8,1098 @@
   <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <!-- Canvas root that holds all draggable items -->
-  <div id="canvas">
-    <!-- Stage is transformed for pan/zoom -->
-    <div id="stage" aria-label="playground"></div>
-  </div>
-
-  <!-- Chat-style prompt pill at the bottom -->
-  <div class="hint" role="note" aria-label="prompt">
-    <div class="hint-header" aria-hidden="true">
-      <span class="hint-dot hint-dot-red"></span>
-      <span class="hint-dot hint-dot-yellow"></span>
-      <span class="hint-dot hint-dot-green"></span>
+  <section class="frame frame-home" aria-label="Home frame">
+    <!-- Canvas root that holds all draggable items -->
+    <div id="canvas">
+      <!-- Stage is transformed for pan/zoom -->
+      <div id="stage" aria-label="playground"></div>
     </div>
-    <span class="hint-text" aria-live="polite"></span>
-  </div>
 
-  <div class="contact-bubble-wrap">
-    <div class="contact-bubble entering" role="group" aria-label="Contact details">
-      <span class="contact-label">Find Me</span>
-      <span class="contact-value" data-masked="kwa*******@gmail.com" data-reveal="kwanchanok.phon@gmail.com">kwa*******@gmail.com</span>
-      <button class="contact-toggle" type="button" aria-label="Show full email" aria-pressed="false">
-        <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z"/>
-          <circle cx="12" cy="12" r="3.25"/>
-          <path class="eye-slash" d="M4 20 20 4"/>
-        </svg>
+    <!-- Chat-style prompt pill at the bottom -->
+    <div class="hint" role="note" aria-label="prompt">
+      <div class="hint-header" aria-hidden="true">
+        <span class="hint-dot hint-dot-red"></span>
+        <span class="hint-dot hint-dot-yellow"></span>
+        <span class="hint-dot hint-dot-green"></span>
+      </div>
+      <span class="hint-text" aria-live="polite"></span>
+    </div>
+
+    <div class="contact-bubble-wrap">
+      <div class="contact-bubble entering" role="group" aria-label="Contact details">
+        <span class="contact-label">Find Me</span>
+        <span class="contact-value" data-masked="kwa*******@gmail.com" data-reveal="kwanchanok.phon@gmail.com">kwa*******@gmail.com</span>
+        <button class="contact-toggle" type="button" aria-label="Show full email" aria-pressed="false">
+          <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M2.5 12s3.6-6 9.5-6 9.5 6 9.5 6-3.6 6-9.5 6-9.5-6-9.5-6Z"/>
+            <circle cx="12" cy="12" r="3.25"/>
+            <path class="eye-slash" d="M4 20 20 4"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="work-bubble-wrap" data-stack="emoji">
+      <button class="work-bubble entering" type="button" aria-label="Stack emoji elements">
+        <span class="work-bubble-label">This site is Interactive<br>Play as you want 🙋🏻‍♀️</span>
       </button>
     </div>
-  </div>
 
-  <div class="contact-bubble-wrap contact-bubble-wrap-left">
-    <div class="contact-bubble contact-bubble-left entering" role="note" aria-label="Interaction hint">
-      <span class="contact-label">This site is Interactive</span>
-      <span class="contact-value">Play with Emoji as you want</span>
+    <button class="audio-toggle" type="button" aria-label="Pause music" aria-pressed="true">
+      <span class="audio-icon" aria-hidden="true">🎧</span>
+      <span class="audio-label">Pause</span>
+    </button>
+    <audio id="bg-music" src="./audio/Carmen Act.mp3" preload="auto" autoplay loop></audio>
+  </section>
+
+  <section class="frame frame-work" aria-label="Work frame">
+    <div class="work-frame-inner">
+      <div class="work-gallery-modal" aria-hidden="true">
+        <section class="work-gallery" aria-label="Work gallery">
+          <div class="album-slider" role="region" aria-label="Album slider">
+            <div class="album-track" id="album-track"></div>
+          </div>
+          <div class="album-scrollbar" aria-label="Work slider scrollbar">
+            <div class="album-scrollbar-track">
+              <div class="album-scrollbar-thumb" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="work-slider-overlay" aria-hidden="true"></div>
+      <div class="work-sticker" aria-label="Profile sticker" data-locked="1" style="left: 17.43%; top: 6.50%;">
+        <div class="work-sticker-title">Product Manager</div>
+        <div class="work-sticker-body">
+          Multidisciplinary designer with 5+ years of experience in a Senior Product Manager role, focused on digital products.
+          <br><br> Driven by curiosity and strong design background, Champion in bringing complexity to life 🔮 in financial technology, coins,
+          cryptocurrency, and such.
+        </div>
+      </div>
+      <div class="work-video-card" aria-label="Project video" data-locked="1" style="left: 48.61%; top: 26.53%;">
+        <video class="work-video" src="vdo/tmncoin.mp4" preload="metadata" playsinline></video>
+        <div class="work-video-label">
+          <span class="work-video-title">TrueMoney Coin</span>
+          <span class="work-video-subtitle">Loyalty system use by Millions across SEA</span>
+        </div>
+      </div>
+      <div class="work-video-card work-video-card-lisa" aria-label="Project video" data-locked="1" style="left: 71.18%; top: 19.89%;">
+        <video class="work-video" src="vdo/lisasme.mp4" poster="vdo/lisathumbnail.png" preload="metadata" playsinline></video>
+        <div class="work-video-label">
+          <span class="work-video-title">Digital Growth</span>
+          <span class="work-video-subtitle">Regardless of size, Empowering businesses growth globally through technology</span>
+        </div>
+      </div>
+      <button class="work-stack" type="button" aria-label="Stacked work" data-locked="1" style="left: 48.61%; top: 66.31%;">
+        <span class="stack-cards">
+          <img src="work/stack-work2.png" alt="">
+          <img src="work/stack-work3.png" alt="">
+          <img src="work/stack-work1.png" alt="">
+        </span>
+        <span class="stack-title">Apps Worked On</span>
+        <span class="stack-meta">Trusted by Thailand's Largest Conglomerate and E-Wallet</span>
+      </button>
+      <button class="work-stack work-stack-creative" type="button" aria-label="Creative code stack" data-locked="1" style="left: 13.89%; top: 58.36%;">
+        <span class="stack-cards">
+          <img src="creative-collection/code-stack1.png" alt="">
+          <img src="creative-collection/code-stack2.png" alt="">
+          <img src="creative-collection/code-stack3.png" alt="">
+        </span>
+        <span class="stack-title">Creative Coder</span>
+        <span class="stack-meta">Algoritm based art collection on p5.js code</span>
+      </button>
+      <button class="work-stack work-stack-website" type="button" aria-label="Corperate websites stack" data-locked="1" style="left: 65.97%; top: 66.31%;">
+        <span class="stack-cards">
+          <img src="website/Webiste1.png" alt="">
+          <img src="website/Webiste2.png" alt="">
+          <img src="website/Webiste3.png" alt="">
+        </span>
+        <span class="stack-title">Corperate Websites</span>
+        <span class="stack-meta">Overlook website management and communication for products</span>
+      </button>
+      <button class="work-stack work-stack-press" type="button" aria-label="Press stack" data-locked="1" style="left: 83.33%; top: 66.31%;">
+        <span class="stack-cards">
+          <img src="press/press1.png" alt="">
+          <img src="press/press2.jpg" alt="">
+          <img src="press/press3.jpg" alt="">
+        </span>
+        <span class="stack-title">Press Release</span>
+        <span class="stack-meta">Public about product launch</span>
+      </button>
+      <div class="desktop-icon desktop-icon-resume" data-locked="1" style="left: 25%; top: 50%;">
+        <img src="resume/Resume.png" alt="">
+        <div class="desktop-icon-title">Resume.pdf</div>
+        <div class="desktop-icon-sub"></div>
+      </div>
+      <div class="desktop-icon-group" aria-label="Desktop icons">
+        <div class="desktop-icon" data-locked="1" style="left: 20.83%; top: 70%;">
+          <img src="icon-desktop/icon1.png" alt="">
+          <div class="desktop-icon-title">Divemaster</div>
+          <div class="desktop-icon-sub">Bestfriend with Fish across Pacific Ocean</div>
+        </div>
+        <div class="desktop-icon" data-locked="1" style="left: 31.53%; top: 70%;">
+          <img src="icon-desktop/icon2.png" alt="">
+          <div class="desktop-icon-title">Baker</div>
+          <div class="desktop-icon-sub">Open home cafe occasionally</div>
+        </div>
+      </div>
+      <div class="creative-modal" aria-hidden="true">
+        <div class="creative-window" role="dialog" aria-label="Creative Coder">
+          <div class="creative-titlebar">
+            <div class="creative-dots">
+              <span class="creative-dot creative-dot-close" aria-label="Close"></span>
+              <span class="creative-dot"></span>
+              <span class="creative-dot"></span>
+            </div>
+            <div class="creative-title">
+              Creative Coder
+              <span class="creative-count">3 files</span>
+            </div>
+          </div>
+          <div class="creative-content">
+            <div class="creative-grid">
+            <div class="creative-item">
+              <a class="creative-link" href="https://kwanchanal.github.io/mintable-collection/" target="_blank" rel="noopener">
+                <img src="creative-collection/code-stack1.png" alt="Creative code 1">
+              </a>
+              <div class="creative-item-title">
+                <a class="creative-link" href="https://kwanchanal.github.io/mintable-collection/" target="_blank" rel="noopener">Boring Pixel Garden</a>
+              </div>
+              <div class="creative-item-tags">
+                <span class="creative-tag">Experiment</span>
+                <span class="creative-tag">Generative</span>
+                <span class="creative-tag">Pixal Art</span>
+              </div>
+            </div>
+            <div class="creative-item">
+              <a class="creative-link" href="https://kwanchanal.github.io/mintable-collection/" target="_blank" rel="noopener">
+                <img src="creative-collection/code-stack2.png" alt="Creative code 2">
+              </a>
+              <div class="creative-item-title">
+                <a class="creative-link" href="https://kwanchanal.github.io/mintable-collection/" target="_blank" rel="noopener">The Sandworm</a>
+              </div>
+              <div class="creative-item-tags">
+                <span class="creative-tag">p5.js</span>
+                <span class="creative-tag">Shader</span>
+              </div>
+            </div>
+            <div class="creative-item">
+              <a class="creative-link" href="https://kwanchanal.github.io/mintable-collection/" target="_blank" rel="noopener">
+                <img src="creative-collection/code-stack3.png" alt="Creative code 3">
+              </a>
+              <div class="creative-item-title">
+                <a class="creative-link" href="https://kwanchanal.github.io/mintable-collection/" target="_blank" rel="noopener">Chiangmai Generative</a>
+              </div>
+              <div class="creative-item-tags">
+                <span class="creative-tag">Algorithm</span>
+                <span class="creative-tag">Sketch</span>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="website-modal" aria-hidden="true">
+        <div class="website-window" role="dialog" aria-label="Corperate Websites">
+          <div class="website-titlebar">
+            <div class="website-dots">
+              <span class="website-dot website-dot-close" aria-label="Close"></span>
+              <span class="website-dot"></span>
+              <span class="website-dot"></span>
+            </div>
+            <div class="website-title">
+              Corperate Websites
+              <span class="website-count">3 files</span>
+            </div>
+          </div>
+          <div class="website-content">
+            <div class="website-grid">
+              <div class="website-item">
+                <img src="website/Webiste1.png" alt="Website 1">
+                <div class="website-item-title">Ascend Corp</div>
+                <div class="website-item-tags">
+                  <span class="website-tag">Corporate</span>
+                  <span class="website-tag">UI</span>
+                </div>
+              </div>
+              <div class="website-item">
+                <img src="website/Webiste2.png" alt="Website 2">
+                <div class="website-item-title">Thai Baht TrueMoney</div>
+                <div class="website-item-tags">
+                  <span class="website-tag">Web</span>
+                  <span class="website-tag">Design</span>
+                </div>
+              </div>
+              <div class="website-item">
+                <img src="website/Webiste3.png" alt="Website 3">
+                <div class="website-item-title">ABC CP Coin</div>
+                <div class="website-item-tags">
+                  <span class="website-tag">Brand</span>
+                  <span class="website-tag">UX</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="press-modal" aria-hidden="true">
+        <div class="press-window" role="dialog" aria-label="Press">
+          <div class="press-titlebar">
+            <div class="press-dots">
+              <span class="press-dot press-dot-close" aria-label="Close"></span>
+              <span class="press-dot"></span>
+              <span class="press-dot"></span>
+            </div>
+            <div class="press-title">
+              Press
+              <span class="press-count">3 files</span>
+            </div>
+          </div>
+          <div class="press-content">
+            <div class="press-grid">
+              <div class="press-item">
+                <a class="creative-link" href="https://www.truemoney.com/thai-baht-truemoney" target="_blank" rel="noopener">
+                  <img src="press/press1.png" alt="Press 1">
+                </a>
+                <div class="press-item-title">
+                  <a class="creative-link" href="https://www.truemoney.com/thai-baht-truemoney" target="_blank" rel="noopener">Thai Baht TrueMoney (THBT)</a>
+                </div>
+                <div class="press-item-tags">
+                  <span class="press-tag">Press</span>
+                  <span class="press-tag">Feature</span>
+                </div>
+              </div>
+              <div class="press-item">
+                <a class="creative-link" href="https://www.bangkokbiznews.com/environment/1157377" target="_blank" rel="noopener">
+                  <img src="press/press2.jpg" alt="Press 2">
+                </a>
+                <div class="press-item-title">
+                  <a class="creative-link" href="https://www.bangkokbiznews.com/environment/1157377" target="_blank" rel="noopener">Carbon Credit as Revenue Stream</a>
+                </div>
+                <div class="press-item-tags">
+                  <span class="press-tag">Coverage</span>
+                  <span class="press-tag">Media</span>
+                </div>
+              </div>
+              <div class="press-item">
+                <a class="creative-link" href="https://mgronline.com/cyberbiz/detail/9680000006030" target="_blank" rel="noopener">
+                  <img src="press/press3.jpg" alt="Press 3">
+                </a>
+                <div class="press-item-title">
+                  <a class="creative-link" href="https://mgronline.com/cyberbiz/detail/9680000006030" target="_blank" rel="noopener">1st Carbon Credit for Retail</a>
+                </div>
+                <div class="press-item-tags">
+                  <span class="press-tag">Article</span>
+                  <span class="press-tag">News</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="resume-modal" aria-hidden="true">
+        <div class="resume-window" role="dialog" aria-label="Resume.pdf">
+          <div class="resume-titlebar">
+            <div class="resume-dots">
+              <span class="resume-dot resume-dot-close" aria-label="Close"></span>
+              <span class="resume-dot"></span>
+              <span class="resume-dot"></span>
+            </div>
+            <div class="resume-title">
+              Resume.pdf
+              <span class="resume-count">PDF</span>
+            </div>
+          </div>
+          <div class="resume-content">
+            <iframe class="resume-frame" src="resume/Kwanchanok_Phonor_Resume.pdf" title="Resume preview"></iframe>
+          </div>
+        </div>
+      </div>
+      <nav class="work-dock" aria-label="Work dock">
+        <button class="dock-item dock-home" type="button" aria-label="Back to home">
+          <img src="icon/Box2.png" alt="Done">
+          <span class="dock-label">Done</span>
+        </button>
+        <button class="dock-item dock-more" type="button" aria-label="Stack work">
+          <img src="icon/Box3.png" alt="More">
+          <span class="dock-label">More</span>
+        </button>
+      </nav>
     </div>
-  </div>
-
-  <a class="work-bubble-wrap" href="https://kwanchanal.framer.website/" target="_blank" rel="noopener noreferrer" aria-label="Work credentials">
-    <div class="work-bubble entering">
-      <span class="work-bubble-label">Work Credentials 🙋🏻‍♀️</span>
-    </div>
-  </a>
-
-  <button class="audio-toggle" type="button" aria-label="Pause music" aria-pressed="true">
-    <span class="audio-icon" aria-hidden="true">🎧</span>
-    <span class="audio-label">Pause</span>
-  </button>
-  <audio id="bg-music" src="./audio/Carmen Act.mp3" preload="auto" autoplay loop></audio>
+  </section>
 
   <!-- Core interaction logic -->
   <script src="./script.js"></script>
+
+  <script>
+    (function () {
+      const wrap = document.querySelector('.work-bubble-wrap[data-stack="emoji"]');
+      const button = wrap ? wrap.querySelector('.work-bubble') : null;
+      const stage = document.getElementById('stage');
+      const canvas = document.getElementById('canvas');
+      if (!wrap || !button || !stage) return;
+
+      const IS_MOBILE = window.matchMedia('(max-width: 640px)').matches;
+      const SHOULD_PERSIST = !IS_MOBILE;
+      const PERSIST_KEY = 'hello-layout-v3';
+      const STACK_KEY = 'hello-layout-stacked';
+      const BACKUP_KEY = 'hello-layout-before-stack';
+
+      const getStageScale = () => {
+        const style = getComputedStyle(stage);
+        const transform = style.transform === 'none' ? '' : style.transform;
+        const matrix = new DOMMatrixReadOnly(transform || undefined);
+        return matrix.isIdentity ? 1 : matrix.a || 1;
+      };
+
+      const toStageCoords = (clientX, clientY) => {
+        const canvasRect = canvas ? canvas.getBoundingClientRect() : stage.getBoundingClientRect();
+        const style = getComputedStyle(stage);
+        const transform = style.transform === 'none' ? '' : style.transform;
+        const matrix = new DOMMatrixReadOnly(transform || undefined);
+        const inv = matrix.isIdentity ? matrix : matrix.inverse();
+        const localX = clientX - canvasRect.left;
+        const localY = clientY - canvasRect.top;
+        const point = new DOMPoint(localX, localY).matrixTransform(inv);
+        return { x: point.x, y: point.y };
+      };
+
+      let isStacked = false;
+      let previousLayout = null;
+
+      const captureLayout = (items) => {
+        const layout = {};
+        items.forEach((el, idx) => {
+          const key = el.dataset.id || `emoji-${idx}`;
+          const left = parseFloat(el.style.left);
+          const top = parseFloat(el.style.top);
+          const width = parseFloat(el.style.width);
+          const height = parseFloat(el.style.height);
+          layout[key] = {
+            x: Number.isFinite(left) ? left : el.offsetLeft,
+            y: Number.isFinite(top) ? top : el.offsetTop,
+            w: Number.isFinite(width) ? width : el.offsetWidth,
+            h: Number.isFinite(height) ? height : el.offsetHeight,
+            zIndex: el.style.zIndex || ''
+          };
+        });
+        return layout;
+      };
+
+      const restoreLayout = (items, layout) => {
+        items.forEach((el, idx) => {
+          const key = el.dataset.id || `emoji-${idx}`;
+          const saved = layout[key];
+          if (!saved) return;
+          el.style.transition = 'left 520ms cubic-bezier(.16,.84,.16,1), top 520ms cubic-bezier(.16,.84,.16,1)';
+          el.style.left = saved.x + 'px';
+          el.style.top = saved.y + 'px';
+          if (saved.w) el.style.width = saved.w + 'px';
+          if (saved.h) el.style.height = saved.h + 'px';
+          el.style.zIndex = saved.zIndex;
+        });
+      };
+
+      const saveLayoutToStorage = (layout) => {
+        if (!SHOULD_PERSIST) return;
+        try { localStorage.setItem(PERSIST_KEY, JSON.stringify(layout)); } catch {}
+      };
+
+      const loadLayoutFromStorage = (key) => {
+        if (!SHOULD_PERSIST) return null;
+        try {
+          return JSON.parse(localStorage.getItem(key) || 'null');
+        } catch {
+          return null;
+        }
+      };
+
+      const isClustered = (items) => {
+        if (!items.length || !canvas) return false;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        items.forEach(el => {
+          const left = parseFloat(el.style.left) || 0;
+          const top = parseFloat(el.style.top) || 0;
+          const width = parseFloat(el.style.width) || el.offsetWidth;
+          const height = parseFloat(el.style.height) || el.offsetHeight;
+          minX = Math.min(minX, left);
+          minY = Math.min(minY, top);
+          maxX = Math.max(maxX, left + width);
+          maxY = Math.max(maxY, top + height);
+        });
+        const scale = getStageScale();
+        const viewW = canvas.clientWidth / scale;
+        const viewH = canvas.clientHeight / scale;
+        const width = maxX - minX;
+        const height = maxY - minY;
+        return width < viewW * 0.35 && height < viewH * 0.35;
+      };
+
+      const scatterEmojis = (items) => {
+        if (!items.length || !canvas) return;
+        const scale = getStageScale();
+        const viewW = canvas.clientWidth / scale;
+        const viewH = canvas.clientHeight / scale;
+        const padX = viewW * 0.1;
+        const padY = viewH * 0.12;
+        const rand = (min, max) => min + Math.random() * (max - min);
+        const anchorRect = button.getBoundingClientRect();
+        const center = IS_MOBILE
+          ? toStageCoords(
+              canvas.getBoundingClientRect().left + canvas.clientWidth / 2,
+              canvas.getBoundingClientRect().top + canvas.clientHeight / 2
+            )
+          : toStageCoords(
+              anchorRect.left + anchorRect.width / 2,
+              anchorRect.top + anchorRect.height / 2
+            );
+        const radiusBase = Math.min(viewW, viewH) * (IS_MOBILE ? 0.38 : 0.14);
+        const radiusSpread = Math.min(viewW, viewH) * (IS_MOBILE ? 0.18 : 0.06);
+
+        const itemsSorted = items.slice().filter(el => el.dataset.id !== 'folder').sort((a, b) => {
+          if (a.dataset.id === 'frame-22') return -1;
+          if (b.dataset.id === 'frame-22') return 1;
+          return 0;
+        });
+
+        itemsSorted.forEach((el, idx) => {
+          const width = parseFloat(el.style.width) || el.offsetWidth;
+          const height = parseFloat(el.style.height) || el.offsetHeight;
+          el.style.transition = 'left 520ms cubic-bezier(.16,.84,.16,1), top 520ms cubic-bezier(.16,.84,.16,1)';
+
+          if (el.dataset.id === 'frame-22') {
+            el.style.left = (center.x - width / 2) + 'px';
+            el.style.top = (center.y - height / 2) + 'px';
+            el.style.zIndex = String(40);
+            return;
+          }
+
+          const angle = rand(0, Math.PI * 2);
+          const radius = radiusBase + rand(-radiusSpread, radiusSpread);
+          let x = center.x + Math.cos(angle) * radius - width / 2;
+          let y = center.y + Math.sin(angle) * radius * (IS_MOBILE ? 1.1 : 0.85) - height / 2;
+          if (IS_MOBILE) {
+            const mobileMinX = center.x - 420;
+            const mobileMaxX = center.x + 420 - width;
+            x = Math.max(mobileMinX, Math.min(x, mobileMaxX));
+          } else {
+            x = Math.max(padX, Math.min(x, viewW - padX - width));
+          }
+          y = Math.max(padY, Math.min(y, viewH - padY - height));
+          el.style.left = x + 'px';
+          el.style.top = y + 'px';
+          el.style.zIndex = String(10 + idx);
+        });
+        saveLayoutToStorage(captureLayout(itemsSorted));
+      };
+
+      window.addEventListener('load', () => {
+        const items = Array.from(stage.querySelectorAll('img.draggable'));
+        if (!items.length) return;
+
+        const stackedFlag = SHOULD_PERSIST && localStorage.getItem(STACK_KEY) === '1';
+        const savedLayout = loadLayoutFromStorage(PERSIST_KEY) || {};
+        const hasSavedLayout = Object.keys(savedLayout).length > 0;
+        const backupLayout = loadLayoutFromStorage(BACKUP_KEY);
+
+        if (stackedFlag && backupLayout) {
+          restoreLayout(items, backupLayout);
+          saveLayoutToStorage(backupLayout);
+          if (SHOULD_PERSIST) localStorage.removeItem(STACK_KEY);
+          isStacked = false;
+          return;
+        }
+
+        if (!stackedFlag && IS_MOBILE) {
+          scatterEmojis(items);
+          isStacked = false;
+        }
+      }, { once: true });
+
+      const stackEmojis = () => {
+        const items = Array.from(stage.querySelectorAll('img.draggable'));
+        if (!items.length) return;
+
+        stage.classList.add('is-stacked');
+
+        const frontId = 'frame-22'; // 💌 emoji
+        const orderedItems = items.slice().sort((a, b) => {
+          if (a.dataset.id === frontId) return 1;
+          if (b.dataset.id === frontId) return -1;
+          return 0;
+        });
+
+        const buttonRect = button.getBoundingClientRect();
+        const centerX = buttonRect.left + buttonRect.width / 2;
+        const centerY = buttonRect.top + buttonRect.height / 2;
+        const target = toStageCoords(centerX, centerY);
+
+        orderedItems.forEach((el, idx) => {
+          const offset = idx * 6;
+          const width = parseFloat(el.style.width) || el.offsetWidth;
+          const height = parseFloat(el.style.height) || el.offsetHeight;
+          el.style.transition = 'left 520ms cubic-bezier(.16,.84,.16,1), top 520ms cubic-bezier(.16,.84,.16,1)';
+          el.style.left = (target.x - width / 2 + offset) + 'px';
+          el.style.top = (target.y - height / 2 - offset) + 'px';
+          el.style.zIndex = String(20 + idx);
+        });
+      };
+
+      button.addEventListener('click', () => {
+        const items = Array.from(stage.querySelectorAll('img.draggable'));
+        if (!items.length) return;
+
+        if (!isStacked) {
+          previousLayout = captureLayout(items);
+          if (SHOULD_PERSIST) {
+            try {
+              localStorage.setItem(BACKUP_KEY, JSON.stringify(previousLayout));
+              localStorage.setItem(STACK_KEY, '1');
+            } catch {}
+          }
+          stackEmojis();
+          isStacked = true;
+          return;
+        }
+
+        if (previousLayout) {
+          restoreLayout(items, previousLayout);
+          stage.classList.remove('is-stacked');
+          isStacked = false;
+          saveLayoutToStorage(previousLayout);
+          if (SHOULD_PERSIST) localStorage.removeItem(STACK_KEY);
+        }
+      });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      const body = document.body;
+      let locked = false;
+
+      const setFrame = (isWork) => {
+        if (locked) return;
+        locked = true;
+        body.classList.toggle('frame-work-active', isWork);
+        if (!isWork) body.classList.remove('creative-modal-active');
+        if (!isWork) body.classList.remove('website-modal-active');
+        if (!isWork) body.classList.remove('press-modal-active');
+        if (!isWork) body.classList.remove('resume-modal-active');
+        setTimeout(() => { locked = false; }, 900);
+      };
+
+      const goWork = () => {
+        setFrame(true);
+      };
+      const goHome = () => setFrame(false);
+      const setStack = (isStacked) => {
+        body.classList.toggle('work-stack-active', isStacked);
+        body.classList.toggle('work-slider-active', !isStacked);
+        if (!isStacked) {
+          window.dispatchEvent(new CustomEvent('work-slider-open'));
+        }
+      };
+
+      setStack(true);
+
+      const bindFolderTrigger = () => {
+        const folder = document.querySelector('.folder-item');
+        if (folder) {
+          folder.addEventListener('click', (e) => {
+            e.preventDefault();
+            goWork();
+          });
+        }
+      };
+
+      bindFolderTrigger();
+
+      const returnButton = document.querySelector('.dock-home');
+      if (returnButton) {
+        returnButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          goHome();
+        });
+      }
+
+      const moreButton = document.querySelector('.dock-more');
+      if (moreButton) {
+        moreButton.addEventListener('click', (e) => {
+          e.preventDefault();
+          setStack(true);
+        });
+      }
+
+      const stackButtons = document.querySelectorAll('.work-stack');
+      if (stackButtons.length) {
+        stackButtons.forEach((stackButton) => {
+          const shouldIgnore = () => {
+            if (stackButton.dataset.dragging === '1') {
+              stackButton.dataset.dragging = '0';
+              return true;
+            }
+            return false;
+          };
+          if (stackButton.classList.contains('work-stack-creative')) {
+            stackButton.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (shouldIgnore()) return;
+              document.body.classList.add('creative-modal-active');
+            });
+          } else if (stackButton.classList.contains('work-stack-website')) {
+            stackButton.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (shouldIgnore()) return;
+              document.body.classList.add('website-modal-active');
+            });
+          } else if (stackButton.classList.contains('work-stack-press')) {
+            stackButton.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (shouldIgnore()) return;
+              document.body.classList.add('press-modal-active');
+            });
+          } else {
+            stackButton.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (shouldIgnore()) return;
+              setStack(false);
+            });
+          }
+        });
+      }
+
+      const slider = document.querySelector('.album-slider');
+      if (slider) {
+        slider.addEventListener('click', (e) => {
+          if (slider.dataset.dragged === '1') {
+            slider.dataset.dragged = '0';
+            return;
+          }
+          e.preventDefault();
+          setStack(true);
+        });
+      }
+
+      const gallery = document.querySelector('.work-gallery');
+      if (gallery) {
+        gallery.addEventListener('click', (e) => {
+          if (!body.classList.contains('frame-work-active')) return;
+          if (body.classList.contains('work-stack-active')) return;
+          if (e.target.closest('.album-slider')) return;
+          if (e.target.closest('.album-scrollbar')) return;
+          e.preventDefault();
+          setStack(true);
+        });
+      }
+
+      document.addEventListener('click', (e) => {
+        if (!body.classList.contains('frame-work-active')) return;
+        if (body.classList.contains('work-stack-active')) return;
+        if (e.target.closest('.album-slider')) return;
+        if (e.target.closest('.album-scrollbar')) return;
+        if (e.target.closest('.work-dock')) return;
+        if (e.target.closest('.work-stack')) return;
+        setStack(true);
+      });
+
+      window.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaY) < 18) return;
+        if (body.classList.contains('frame-work-active')) {
+          if (e.deltaY > 0) setStack(true);
+          else goHome();
+        } else {
+          if (e.deltaY > 0) goWork();
+          else goHome();
+        }
+      }, { passive: true });
+
+      let touchStartY = null;
+      window.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      window.addEventListener('touchend', (e) => {
+        if (touchStartY === null) return;
+        const delta = touchStartY - e.changedTouches[0].clientY;
+        touchStartY = null;
+        if (Math.abs(delta) < 30) return;
+        if (body.classList.contains('frame-work-active')) {
+          if (delta > 0) setStack(true);
+          else goHome();
+        } else {
+          if (delta > 0) goWork();
+          else goHome();
+        }
+      }, { passive: true });
+
+      const creativeModal = document.querySelector('.creative-modal');
+      const creativeClose = document.querySelector('.creative-dot-close');
+      const closeCreative = () => {
+        document.body.classList.remove('creative-modal-active');
+      };
+      if (creativeModal) {
+        creativeModal.addEventListener('click', (e) => {
+          if (e.target === creativeModal) closeCreative();
+        });
+      }
+      if (creativeClose) {
+        creativeClose.addEventListener('click', (e) => {
+          e.preventDefault();
+          closeCreative();
+        });
+      }
+
+      const websiteModal = document.querySelector('.website-modal');
+      const websiteClose = document.querySelector('.website-dot-close');
+      const closeWebsite = () => {
+        document.body.classList.remove('website-modal-active');
+      };
+      if (websiteModal) {
+        websiteModal.addEventListener('click', (e) => {
+          if (e.target === websiteModal) closeWebsite();
+        });
+      }
+      if (websiteClose) {
+        websiteClose.addEventListener('click', (e) => {
+          e.preventDefault();
+          closeWebsite();
+        });
+      }
+
+      const pressModal = document.querySelector('.press-modal');
+      const pressClose = document.querySelector('.press-dot-close');
+      const closePress = () => {
+        document.body.classList.remove('press-modal-active');
+      };
+      if (pressModal) {
+        pressModal.addEventListener('click', (e) => {
+          if (e.target === pressModal) closePress();
+        });
+      }
+      if (pressClose) {
+        pressClose.addEventListener('click', (e) => {
+          e.preventDefault();
+          closePress();
+        });
+      }
+
+      const resumeIcon = document.querySelector('.desktop-icon-resume');
+      if (resumeIcon) {
+        resumeIcon.addEventListener('click', (e) => {
+          e.preventDefault();
+          document.body.classList.add('resume-modal-active');
+        });
+      }
+
+      const resumeModal = document.querySelector('.resume-modal');
+      const resumeClose = document.querySelector('.resume-dot-close');
+      const closeResume = () => {
+        document.body.classList.remove('resume-modal-active');
+      };
+      const closeResumeOnScroll = () => {
+        if (document.body.classList.contains('resume-modal-active')) {
+          closeResume();
+        }
+      };
+      if (resumeModal) {
+        resumeModal.addEventListener('click', (e) => {
+          if (e.target === resumeModal) closeResume();
+        });
+      }
+      if (resumeClose) {
+        resumeClose.addEventListener('click', (e) => {
+          e.preventDefault();
+          closeResume();
+        });
+      }
+
+      window.addEventListener('scroll', closeResumeOnScroll, { passive: true });
+      window.addEventListener('touchmove', closeResumeOnScroll, { passive: true });
+
+    })();
+  </script>
+
+  <script>
+    (function () {
+      const track = document.getElementById('album-track');
+      if (!track) return;
+
+      const files = Array.from({ length: 22 }, (_, i) => `work/Work${i + 1}.png`);
+      let setIndex = 0;
+      const buildCards = (list) => {
+        list.forEach((src, index) => {
+          const card = document.createElement('div');
+          card.className = 'album-card';
+          card.dataset.workIndex = String(index);
+          card.dataset.setIndex = String(setIndex);
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = '';
+          img.loading = 'lazy';
+          card.appendChild(img);
+          track.appendChild(card);
+        });
+        setIndex += 1;
+      };
+
+      buildCards(files);
+      buildCards(files);
+      buildCards(files);
+
+      const slider = track.closest('.album-slider');
+      if (!slider) return;
+      const scrollbar = document.querySelector('.album-scrollbar');
+      const scrollbarTrack = scrollbar ? scrollbar.querySelector('.album-scrollbar-track') : null;
+      const scrollbarThumb = scrollbar ? scrollbar.querySelector('.album-scrollbar-thumb') : null;
+      slider.dataset.dragged = '0';
+
+      const updateCards = () => {
+        const sliderRect = slider.getBoundingClientRect();
+        const center = sliderRect.left + sliderRect.width / 2;
+        track.querySelectorAll('.album-card').forEach((card) => {
+          const rect = card.getBoundingClientRect();
+          const cardCenter = rect.left + rect.width / 2;
+          const offset = (cardCenter - center) / sliderRect.width;
+          const abs = Math.min(1, Math.abs(offset));
+          card.style.setProperty('--offset', offset.toFixed(3));
+          card.style.setProperty('--abs', abs.toFixed(3));
+          card.style.zIndex = String(100 - Math.round(abs * 80));
+        });
+      };
+
+      let offset = 0;
+      let baseOffset = 0;
+      let setWidth = 0;
+      let raf = null;
+      let isDragging = false;
+      let draggingThumb = false;
+      let dragStartX = 0;
+      let dragStartOffset = 0;
+      let dragMoved = false;
+
+      const updateThumb = () => {
+        if (!scrollbarTrack || !scrollbarThumb || !setWidth) return;
+        const normalized = ((offset - baseOffset) % setWidth + setWidth) % setWidth;
+        const progress = (normalized / setWidth + 0.5) % 1;
+        const trackWidth = scrollbarTrack.clientWidth;
+        const thumbWidth = scrollbarThumb.offsetWidth;
+        const travel = Math.max(0, trackWidth - thumbWidth);
+        scrollbarThumb.style.transform = `translate3d(${travel * progress}px, -50%, 0)`;
+        scrollbarThumb.setAttribute('aria-valuenow', String(Math.round(progress * 100)));
+      };
+
+      const applyTransform = () => {
+        track.style.transform = `translate3d(${offset}px, 0, 0)`;
+        updateCards();
+        updateThumb();
+      };
+
+      const requestRender = () => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = null;
+          applyTransform();
+        });
+      };
+
+      const normalizeOffset = () => {
+        if (!setWidth) return;
+        const min = -setWidth * 1.5;
+        const max = -setWidth * 0.5;
+        if (offset > max) {
+          offset -= setWidth;
+        } else if (offset < min) {
+          offset += setWidth;
+        }
+      };
+
+      const centerOnWork2 = () => {
+        const target = track.querySelector('.album-card[data-set-index="1"][data-work-index="1"]');
+        if (!target) return;
+        const sliderRect = slider.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const delta = (sliderRect.left + sliderRect.width / 2) - (targetRect.left + targetRect.width / 2);
+        offset += delta;
+        normalizeOffset();
+        baseOffset = offset;
+        requestRender();
+      };
+
+      const refreshLayout = () => {
+        setWidth = track.scrollWidth / 3;
+        requestRender();
+      };
+
+      window.addEventListener('load', () => {
+        refreshLayout();
+        centerOnWork2();
+      }, { once: true });
+
+      window.addEventListener('resize', () => {
+        refreshLayout();
+        if (document.body.classList.contains('frame-work-active')
+            && !document.body.classList.contains('work-stack-active')) {
+          centerOnWork2();
+        }
+      });
+
+      window.addEventListener('work-slider-open', () => {
+        requestAnimationFrame(() => {
+          refreshLayout();
+          centerOnWork2();
+        });
+      });
+
+      const setOffsetFromProgress = (progress) => {
+        if (!setWidth) return;
+        const clamped = Math.min(1, Math.max(0, progress));
+        const shifted = (clamped - 0.5 + 1) % 1;
+        offset = baseOffset + shifted * setWidth;
+        normalizeOffset();
+        requestRender();
+      };
+
+      const beginDrag = (clientX, useThumb, captureTarget, pointerId) => {
+        isDragging = true;
+        draggingThumb = useThumb;
+        dragMoved = false;
+        dragStartX = clientX;
+        dragStartOffset = offset;
+        slider.classList.add('is-dragging');
+        captureTarget?.setPointerCapture?.(pointerId);
+        if (useThumb && scrollbarTrack && scrollbarThumb) {
+          const rect = scrollbarTrack.getBoundingClientRect();
+          const thumbWidth = scrollbarThumb.offsetWidth;
+          const travel = Math.max(0, rect.width - thumbWidth);
+          const clickX = clientX - rect.left - thumbWidth / 2;
+          const progress = travel ? clickX / travel : 0;
+          setOffsetFromProgress(progress);
+        }
+      };
+
+      const moveDrag = (clientX) => {
+        if (!isDragging) return;
+        if (draggingThumb && scrollbarTrack && scrollbarThumb) {
+          const rect = scrollbarTrack.getBoundingClientRect();
+          const thumbWidth = scrollbarThumb.offsetWidth;
+          const travel = Math.max(0, rect.width - thumbWidth);
+          const progress = travel ? (clientX - rect.left - thumbWidth / 2) / travel : 0;
+          setOffsetFromProgress(progress);
+        } else {
+          const delta = clientX - dragStartX;
+          if (!dragMoved && Math.abs(delta) > 3) {
+            dragMoved = true;
+            slider.dataset.dragged = '1';
+          }
+          offset = dragStartOffset + delta;
+          normalizeOffset();
+          requestRender();
+        }
+      };
+
+      const endDrag = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        draggingThumb = false;
+        slider.classList.remove('is-dragging');
+        if (dragMoved) {
+          setTimeout(() => {
+            slider.dataset.dragged = '0';
+          }, 0);
+        }
+        dragMoved = false;
+      };
+
+      const onPointerDownScrollbar = (e) => {
+        if (!scrollbarTrack || !scrollbarThumb) return;
+        e.preventDefault();
+        beginDrag(e.clientX, true, scrollbarTrack, e.pointerId);
+      };
+
+      const onPointerMove = (e) => {
+        moveDrag(e.clientX);
+      };
+
+      const onPointerUp = () => {
+        endDrag();
+      };
+
+      const onTouchStartSlider = (e) => {
+        if (!e.touches[0]) return;
+        e.preventDefault();
+        beginDrag(e.touches[0].clientX, false);
+      };
+
+      const onTouchStartScrollbar = (e) => {
+        if (!scrollbarTrack || !scrollbarThumb || !e.touches[0]) return;
+        e.preventDefault();
+        beginDrag(e.touches[0].clientX, true);
+      };
+
+      const onTouchMove = (e) => {
+        if (!e.touches[0]) return;
+        if (isDragging) e.preventDefault();
+        moveDrag(e.touches[0].clientX);
+      };
+
+      const onTouchEnd = () => {
+        endDrag();
+      };
+
+      if (scrollbarTrack) {
+        scrollbarTrack.addEventListener('pointerdown', onPointerDownScrollbar);
+      }
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+      window.addEventListener('pointercancel', onPointerUp);
+
+      slider.addEventListener('touchstart', onTouchStartSlider, { passive: false });
+      if (scrollbarTrack) {
+        scrollbarTrack.addEventListener('touchstart', onTouchStartScrollbar, { passive: false });
+      }
+      window.addEventListener('touchmove', onTouchMove, { passive: false });
+      window.addEventListener('touchend', onTouchEnd);
+      window.addEventListener('touchcancel', onTouchEnd);
+
+      slider.addEventListener('wheel', (e) => {
+        const absX = Math.abs(e.deltaX);
+        const absY = Math.abs(e.deltaY);
+        if (absX <= 0 && absY <= 0) return;
+        const delta = absX >= absY ? e.deltaX : e.deltaY;
+        offset -= delta;
+        normalizeOffset();
+        requestRender();
+        e.preventDefault();
+      }, { passive: false });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      const cards = document.querySelectorAll('.work-video-card');
+      if (!cards.length) return;
+
+      cards.forEach((card) => {
+        const video = card.querySelector('.work-video');
+        if (!video) return;
+
+        const showControls = () => {
+          video.controls = true;
+        };
+
+        const hideControls = () => {
+          video.controls = false;
+        };
+
+        card.addEventListener('pointerenter', showControls);
+        card.addEventListener('pointerleave', hideControls);
+        card.addEventListener('focusin', showControls);
+        card.addEventListener('focusout', hideControls);
+        card.addEventListener('touchstart', showControls, { passive: true });
+        video.addEventListener('pause', hideControls);
+      });
+    })();
+  </script>
 
   <!-- Entrance animation for elements marked with .entering -->
   <script>
@@ -74,10 +1115,13 @@
 
       // Run entrance animation once for the given nodes.
       function animateOnce(nodes) {
-        const ordered = [
-          ...nodes.filter(el => el.classList.contains('entering-first')),
-          ...nodes.filter(el => !el.classList.contains('entering-first'))
-        ];
+        const enteringFirst = nodes.filter(el => el.classList.contains('entering-first'));
+        const rest = nodes.filter(el => !el.classList.contains('entering-first'));
+        for (let i = rest.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [rest[i], rest[j]] = [rest[j], rest[i]];
+        }
+        const ordered = [...enteringFirst, ...rest];
         ordered.forEach((el, i) => {
           // Cancel any running animations before starting a new one.
           el.getAnimations?.().forEach(a => a.cancel());
