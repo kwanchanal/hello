@@ -76,7 +76,7 @@
         </div>
       </div>
       <div class="work-video-card" aria-label="Project video" data-locked="1" style="left: 48.61%; top: 26.53%;">
-        <video class="work-video" src="vdo/tmncoin.mp4" preload="metadata" playsinline></video>
+        <video class="work-video" src="vdo/tmncoin.mp4" poster="vdo/tmncointhumbnail.png" preload="metadata" playsinline></video>
         <div class="work-video-label">
           <span class="work-video-title">TrueMoney Coin</span>
           <span class="work-video-subtitle">Loyalty system use by Millions across SEA</span>
@@ -308,8 +308,12 @@
               Resume.pdf
               <span class="resume-count">PDF</span>
             </div>
+            <div class="resume-actions">
+              <a class="resume-open" href="resume/Kwanchanok_Phonor_Resume.pdf" target="_blank" rel="noopener" download>Open PDF</a>
+            </div>
           </div>
           <div class="resume-content">
+            <a class="resume-open resume-open-mobile" href="resume/Kwanchanok_Phonor_Resume.pdf" target="_blank" rel="noopener" download>Open / Download PDF</a>
             <iframe class="resume-frame" src="resume/Kwanchanok_Phonor_Resume.pdf" title="Resume preview"></iframe>
           </div>
         </div>
@@ -714,15 +718,29 @@
       }, { passive: true });
 
       let touchStartY = null;
+      let touchStartTarget = null;
+      let touchStartScroll = 0;
+      const swipeThreshold = window.matchMedia('(max-width: 1024px)').matches ? 120 : 30;
+      const isBlockedTarget = (target) => {
+        if (!target) return false;
+        return !!target.closest('.album-slider, .album-scrollbar, .resume-modal, .creative-modal, .website-modal, .press-modal, .work-dock, a, button, input, textarea');
+      };
       window.addEventListener('touchstart', (e) => {
         touchStartY = e.touches[0].clientY;
+        touchStartTarget = e.target;
+        touchStartScroll = window.scrollY || document.documentElement.scrollTop || 0;
       }, { passive: true });
       window.addEventListener('touchend', (e) => {
         if (touchStartY === null) return;
         const delta = touchStartY - e.changedTouches[0].clientY;
+        const wasBlocked = isBlockedTarget(touchStartTarget);
         touchStartY = null;
-        if (Math.abs(delta) < 30) return;
-        if (body.classList.contains('frame-work-active')) {
+        touchStartTarget = null;
+        if (wasBlocked) return;
+        if (Math.abs(delta) < swipeThreshold) return;
+        const isWork = body.classList.contains('frame-work-active');
+        if (isWork && touchStartScroll > 0) return;
+        if (isWork) {
           if (delta > 0) setStack(true);
           else goHome();
         } else {

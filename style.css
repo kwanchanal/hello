@@ -29,6 +29,7 @@ html, body {
   user-select: none;
   -webkit-user-drag: none;
   transform-origin: center;
+  transition: opacity 520ms ease, transform 520ms ease;
 }
 #stage .draggable:active { cursor: grabbing; }
 
@@ -718,6 +719,32 @@ body.resume-modal-active .resume-modal {
   align-items: center;
 }
 
+.resume-actions {
+  margin-left: auto;
+}
+
+.resume-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #2c2c2c;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.resume-open:hover {
+  opacity: 0.85;
+}
+
+.resume-open-mobile {
+  display: none;
+}
+
 .resume-count {
   font-size: 11px;
   color: rgba(44, 44, 44, 0.6);
@@ -929,7 +956,7 @@ body.resume-modal-active .resume-modal {
   user-select: none;
 }
 
-@media (min-width: 641px) {
+@media (min-width: 1025px) {
   .album-card img {
     filter: brightness(calc(1 - var(--abs, 0) * 0.65));
   }
@@ -1026,7 +1053,7 @@ body.work-stack-active .work-stack {
   letter-spacing: 0.3px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .frame-work {
     display: none;
   }
@@ -1040,7 +1067,7 @@ body.work-stack-active .work-stack {
   }
 
   body.frame-work-active {
-    overflow: hidden;
+    overflow: auto;
   }
 
   .work-frame-inner {
@@ -1049,11 +1076,12 @@ body.work-stack-active .work-stack {
     align-items: center;
     gap: 26px;
     min-height: 100%;
-    padding: 80px 0 100px;
+    padding: 140px 0 320px;
   }
 
   .work-sticker {
     order: 1;
+    margin-top: 160px;
   }
 
   .work-video-card-lisa {
@@ -1262,6 +1290,24 @@ body.work-stack-active .work-stack {
     width: min(92vw, 520px);
     height: min(80vh, 560px);
     border-radius: 10px;
+  }
+
+  .resume-actions {
+    display: none;
+  }
+
+  .resume-open-mobile {
+    display: inline-flex;
+    margin: 10px auto 0;
+  }
+
+  .resume-content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .resume-frame {
+    flex: 1;
   }
 
   .desktop-icon-group {
@@ -1636,7 +1682,7 @@ body.work-stack-active .work-stack {
   line-height: 1;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .contact-bubble-wrap {
     left: 50%;
     top: 55%;
@@ -1706,7 +1752,7 @@ body.work-stack-active .work-stack {
 }
 
 
-@media (max-width: 640px) {
+@media (max-width: 1024px) {
   .work-bubble-wrap {
     left: 50%;
     top: 42%;

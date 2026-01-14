@@ -3,7 +3,7 @@ const stage  = document.getElementById('stage');
 
 const IMAGE_COUNT = 23;
 const SKIP_IDS = new Set(['frame-6']);
-const IS_MOBILE = window.matchMedia('(max-width: 640px)').matches;
+const IS_MOBILE = window.matchMedia('(max-width: 1024px)').matches;
 const PERSIST_KEY = 'hello-layout-v3';
 const PERSIST_ON_MOBILE = false;
 const WHEEL_ZOOM_STEP = 0.001;
@@ -67,6 +67,7 @@ const saveLayout = (()=>{let t=null;return()=>{clearTimeout(t);t=setTimeout(save
 
 const els = [];
 const loadPromises = [];
+let revealIndex = 0;
 for (let i = 1; i <= IMAGE_COUNT; i++) {
   const id = `frame-${i}`;
   if (SKIP_IDS.has(id)) continue;
@@ -81,10 +82,26 @@ for (let i = 1; i <= IMAGE_COUNT; i++) {
   el.addEventListener('dragstart', e => e.preventDefault());
   stage.appendChild(el);
   els.push(el);
+  const revealOrder = revealIndex++;
+  const reveal = () => {
+    const delay = 40 + (revealOrder * 28);
+    window.setTimeout(() => {
+      el.classList.remove('entering');
+    }, delay);
+  };
   loadPromises.push(new Promise(res => {
-    if (el.complete) return res();
-    el.onload = () => res();
-    el.onerror = () => res();
+    if (el.complete) {
+      reveal();
+      return res();
+    }
+    el.onload = () => {
+      reveal();
+      res();
+    };
+    el.onerror = () => {
+      el.classList.remove('entering');
+      res();
+    };
   }));
 }
 
@@ -171,6 +188,7 @@ function centerStageOnContent() {
 Promise.all(loadPromises).then(() => {
   centerStageOnContent();
   if (folderWrap) {
+    folderWrap.classList.remove('entering');
     if (IS_MOBILE) {
       const viewW = canvas.clientWidth;
       const viewH = canvas.clientHeight;
