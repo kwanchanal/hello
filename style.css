@@ -1355,7 +1355,7 @@ body.work-stack-active .work-stack {
 
   .stack-title,
   .stack-meta {
-    width: 180px;
+    width: 220px;
   }
 
   .stack-title {
@@ -1367,6 +1367,21 @@ body.work-stack-active .work-stack {
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
+  }
+
+  .album-slider {
+    touch-action: pan-y;
+  }
+
+  .album-scrollbar-track {
+    width: min(220px, 70%);
+    height: 12px;
+    touch-action: pan-y;
+  }
+
+  .album-scrollbar-thumb {
+    width: 22px;
+    height: 22px;
   }
 
   .stack-cards {

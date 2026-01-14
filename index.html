@@ -309,12 +309,12 @@
               <span class="resume-count">PDF</span>
             </div>
             <div class="resume-actions">
-              <a class="resume-open" href="resume/Kwanchanok_Phonor_Resume.pdf" target="_blank" rel="noopener" download>Open PDF</a>
+              <a class="resume-open" href="resume/Kwanchanok_Phonor_Resume.pdf#view=FitH" target="_blank" rel="noopener" download>Open PDF</a>
             </div>
           </div>
           <div class="resume-content">
-            <a class="resume-open resume-open-mobile" href="resume/Kwanchanok_Phonor_Resume.pdf" target="_blank" rel="noopener" download>Open / Download PDF</a>
-            <iframe class="resume-frame" src="resume/Kwanchanok_Phonor_Resume.pdf" title="Resume preview"></iframe>
+            <a class="resume-open resume-open-mobile" href="resume/Kwanchanok_Phonor_Resume.pdf#view=FitH" target="_blank" rel="noopener" download>Open / Download PDF</a>
+            <iframe class="resume-frame" src="resume/Kwanchanok_Phonor_Resume.pdf#view=FitH" title="Resume preview"></iframe>
           </div>
         </div>
       </div>
@@ -1041,10 +1041,15 @@
         endDrag();
       };
 
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchIsHorizontal = false;
       const onTouchStartSlider = (e) => {
         if (!e.touches[0]) return;
-        e.preventDefault();
-        beginDrag(e.touches[0].clientX, false);
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        touchIsHorizontal = false;
+        beginDrag(touchStartX, false);
       };
 
       const onTouchStartScrollbar = (e) => {
@@ -1055,7 +1060,14 @@
 
       const onTouchMove = (e) => {
         if (!e.touches[0]) return;
-        if (isDragging) e.preventDefault();
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+        if (!touchIsHorizontal) {
+          if (Math.abs(dx) < 6) return;
+          touchIsHorizontal = Math.abs(dx) > Math.abs(dy);
+        }
+        if (!touchIsHorizontal) return;
+        e.preventDefault();
         moveDrag(e.touches[0].clientX);
       };
 
@@ -1071,11 +1083,11 @@
       window.addEventListener('pointerup', onPointerUp);
       window.addEventListener('pointercancel', onPointerUp);
 
-      slider.addEventListener('touchstart', onTouchStartSlider, { passive: false });
+      slider.addEventListener('touchstart', onTouchStartSlider, { passive: true });
+      slider.addEventListener('touchmove', onTouchMove, { passive: false });
       if (scrollbarTrack) {
         scrollbarTrack.addEventListener('touchstart', onTouchStartScrollbar, { passive: false });
       }
-      window.addEventListener('touchmove', onTouchMove, { passive: false });
       window.addEventListener('touchend', onTouchEnd);
       window.addEventListener('touchcancel', onTouchEnd);
 
