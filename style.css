@@ -816,12 +816,13 @@ body.resume-modal-active .resume-modal {
   text-align: center;
   color: #ffffff;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  text-decoration: none;
   pointer-events: auto;
   cursor: pointer;
   z-index: 3;
 }
 
-.desktop-icon-resume:hover {
+.desktop-icon:hover {
   animation: resume-wiggle 420ms ease-in-out;
 }
 
