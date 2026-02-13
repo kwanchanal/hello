@@ -77,6 +77,7 @@ for (let i = 1; i <= IMAGE_COUNT; i++) {
   el.dataset.id = id;
   if (el.dataset.id === 'frame-22') {
     el.classList.add('entering-first');
+    el.classList.add('is-locked');
   }
   el.draggable = false;
   el.addEventListener('dragstart', e => e.preventDefault());
@@ -103,6 +104,65 @@ for (let i = 1; i <= IMAGE_COUNT; i++) {
       res();
     };
   }));
+}
+
+const frame22El = els.find((el) => el.dataset.id === 'frame-22');
+let frame22Label = null;
+let frame22Tooltip = null;
+const frame22LabelOffsetY = IS_MOBILE ? -45 : -60;
+const frame22TooltipOffsetY = IS_MOBILE ? 72 : 60;
+const syncFrame22Label = () => {
+  if (!frame22El) return;
+  const left = parseFloat(frame22El.style.left) || frame22El.offsetLeft || 0;
+  const top = parseFloat(frame22El.style.top) || frame22El.offsetTop || 0;
+  const width = parseFloat(frame22El.style.width) || frame22El.offsetWidth || 0;
+  const height = parseFloat(frame22El.style.height) || frame22El.offsetHeight || 0;
+  const iconZ = parseInt(frame22El.style.zIndex || '10', 10);
+  const baseZ = Number.isFinite(iconZ) ? iconZ : 10;
+
+  if (frame22Label) {
+    frame22Label.style.left = (left + width / 2) + 'px';
+    frame22Label.style.top = (top + height + frame22LabelOffsetY) + 'px';
+    frame22Label.style.zIndex = String(baseZ + 1);
+  }
+
+  if (frame22Tooltip) {
+    frame22Tooltip.style.left = (left + width / 2) + 'px';
+    frame22Tooltip.style.top = (top + frame22TooltipOffsetY) + 'px';
+    frame22Tooltip.style.zIndex = String(baseZ + 2);
+  }
+};
+
+if (frame22El) {
+  frame22Label = document.createElement('div');
+  frame22Label.className = 'frame-22-label entering';
+  frame22El.style.cursor = 'pointer';
+  frame22El.setAttribute('title', 'Open wemint.link');
+  frame22El.addEventListener('click', () => {
+    window.location.href = 'https://wemint.link/';
+  });
+
+  const frame22LabelTitle = document.createElement('span');
+  frame22LabelTitle.className = 'frame-22-label-title';
+  frame22LabelTitle.textContent = 'SaaS Startup!';
+
+  const frame22LabelSub = document.createElement('span');
+  frame22LabelSub.className = 'frame-22-label-sub';
+  frame22LabelSub.textContent = 'To help you make your own conversion page.';
+
+  frame22Tooltip = document.createElement('span');
+  frame22Tooltip.className = 'frame-22-tooltip entering';
+  frame22Tooltip.textContent = 'wemint.link/you';
+
+  frame22Label.appendChild(frame22LabelTitle);
+  frame22Label.appendChild(frame22LabelSub);
+  stage.appendChild(frame22Label);
+  stage.appendChild(frame22Tooltip);
+
+  const frame22Observer = new MutationObserver(syncFrame22Label);
+  frame22Observer.observe(frame22El, { attributes: true, attributeFilter: ['style'] });
+  frame22El.addEventListener('load', syncFrame22Label);
+  window.addEventListener('resize', syncFrame22Label);
 }
 
 const folderDesktopPos = { x: 0, y: 0 };
@@ -155,6 +215,7 @@ function applyLayout(layout) {
     el.style.width = lay.w + 'px';
     if (lay.h) el.style.height = lay.h + 'px'; else el.style.removeProperty('height');
   });
+  syncFrame22Label();
 }
 applyLayout(initialLayout);
 
@@ -187,6 +248,7 @@ function centerStageOnContent() {
 
 Promise.all(loadPromises).then(() => {
   centerStageOnContent();
+  syncFrame22Label();
   if (folderWrap) {
     folderWrap.classList.remove('entering');
     if (IS_MOBILE) {
@@ -210,6 +272,8 @@ Promise.all(loadPromises).then(() => {
     folderImg.style.height = size.h + 'px';
   }
   if (!IS_MOBILE) saveLayoutNow();
+  if (frame22Label) frame22Label.classList.remove('entering');
+  if (frame22Tooltip) frame22Tooltip.classList.remove('entering');
 });
 
 
@@ -246,6 +310,10 @@ function stageLocalXY(clientX, clientY){
 stage.addEventListener('pointerdown', e => {
   const el = e.target.closest('img.draggable');
   if (!el) { hideSelection(); return; }
+  if (el.dataset.id === 'frame-22' || el.classList.contains('is-locked')) {
+    hideSelection();
+    return;
+  }
 
   if (!el.classList.contains('float-emoji')) {
     el.getAnimations?.().forEach(a => a.cancel());
@@ -265,6 +333,7 @@ stage.addEventListener('pointermove', e => {
   const pos = stageLocalXY(e.clientX - offsetX, e.clientY - offsetY);
   active.style.left = pos.x + 'px';
   active.style.top  = pos.y + 'px';
+  syncFrame22Label();
   updateSelection(active);
   saveLayout();
 });
@@ -292,6 +361,7 @@ function onResizeMove(e){
   if(pos.includes("n")){ newH=startH-dy; newT=startT+dy; }
   newW=Math.max(40,newW); newH=Math.max(40,newH);
   el.style.left=newL+'px'; el.style.top=newT+'px'; el.style.width=newW+'px'; el.style.height=newH+'px';
+  syncFrame22Label();
   updateSelection(el);
   saveLayout();
 }

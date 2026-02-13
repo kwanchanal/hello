@@ -33,6 +33,11 @@ html, body {
 }
 #stage .draggable:active { cursor: grabbing; }
 
+#stage .draggable.is-locked,
+#stage .draggable.is-locked:active {
+  cursor: default;
+}
+
 .frame {
   position: fixed;
   inset: 0;
@@ -1517,6 +1522,89 @@ body.work-stack-active .work-stack {
   45% { transform: scale(1.08); }
 }
 
+.frame-22-label {
+  position: absolute;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  transform: translateX(-50%);
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  text-align: center;
+  pointer-events: none;
+  min-width: 760px;
+}
+
+.frame-22-label-title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.frame-22-label-sub {
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.1;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.frame-22-tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(230, 230, 230, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #7f7f7f;
+  font-size: 18px;
+  font-weight: 500;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  text-shadow: none;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: frame22-tooltip-loop 2s ease-in-out infinite;
+}
+
+.frame-22-tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(230, 230, 230, 0.95);
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+@keyframes frame22-tooltip-loop {
+  0%, 10% { opacity: 0; transform: translate(-50%, -100%); }
+  20%, 60% { opacity: 1; transform: translate(-50%, -102%); }
+  70%, 100% { opacity: 0; transform: translate(-50%, -100%); }
+}
+
+@media (max-width: 1024px) {
+  .frame-22-label {
+    min-width: 640px;
+  }
+
+  .frame-22-label-title {
+    font-size: 18px;
+  }
+
+  .frame-22-label-sub {
+    font-size: 18px;
+  }
+
+  .frame-22-tooltip {
+    font-size: 16px;
+  }
+}
+
 
 #stage.is-stacked .draggable {
   pointer-events: none;
@@ -1746,7 +1834,7 @@ body.work-stack-active .work-stack {
 @media (max-width: 1024px) {
   .contact-bubble-wrap {
     left: 50%;
-    top: 55%;
+    top: 33%;
     transform: translate(-50%, -50%);
   }
 
@@ -1816,7 +1904,7 @@ body.work-stack-active .work-stack {
 @media (max-width: 1024px) {
   .work-bubble-wrap {
     left: 50%;
-    top: 42%;
+    top: 10%;
     transform: translate(-50%, -50%);
   }
 
