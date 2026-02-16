@@ -148,7 +148,7 @@ if (frame22El) {
 
   const frame22LabelSub = document.createElement('span');
   frame22LabelSub.className = 'frame-22-label-sub';
-  frame22LabelSub.textContent = 'Help you make your own conversion page fast and free';
+  frame22LabelSub.textContent = 'Help you make your own page fast and free';
 
   frame22Tooltip = document.createElement('span');
   frame22Tooltip.className = 'frame-22-tooltip entering';
