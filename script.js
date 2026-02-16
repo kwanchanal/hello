@@ -144,15 +144,15 @@ if (frame22El) {
 
   const frame22LabelTitle = document.createElement('span');
   frame22LabelTitle.className = 'frame-22-label-title';
-  frame22LabelTitle.textContent = 'SaaS Startup!';
+  frame22LabelTitle.textContent = 'WEMINT.LINK/YOU';
 
   const frame22LabelSub = document.createElement('span');
   frame22LabelSub.className = 'frame-22-label-sub';
-  frame22LabelSub.textContent = 'To help you make your own conversion page.';
+  frame22LabelSub.textContent = 'Help you make your own conversion page fast and free';
 
   frame22Tooltip = document.createElement('span');
   frame22Tooltip.className = 'frame-22-tooltip entering';
-  frame22Tooltip.textContent = 'wemint.link/you';
+  frame22Tooltip.textContent = 'Make Your Site Quick';
 
   frame22Label.appendChild(frame22LabelTitle);
   frame22Label.appendChild(frame22LabelSub);
@@ -185,7 +185,7 @@ folderImg.addEventListener('dragstart', e => e.preventDefault());
 
 const folderLabel = document.createElement('span');
 folderLabel.className = 'folder-label';
-folderLabel.textContent = 'Works';
+folderLabel.textContent = 'Portfolio';
 
 const folderTooltip = document.createElement('span');
 folderTooltip.className = 'folder-tooltip';
@@ -263,7 +263,7 @@ Promise.all(loadPromises).then(() => {
       const viewH = canvas.clientHeight;
       const target = stageLocalXY(viewW / 2, viewH / 2);
       const size = folderDefaultSize;
-      folderWrap.style.left = (target.x - size.w / 2 - (viewW * 0.15)) + 'px';
+      folderWrap.style.left = (target.x - size.w / 2 - (viewW * 0.24)) + 'px';
       folderWrap.style.top = (target.y + viewH * 0.18 - size.h / 2) + 'px';
     }
     folderWrap.style.zIndex = '200';
