@@ -1610,6 +1610,10 @@ body.work-stack-active .work-stack {
   pointer-events: none;
 }
 
+#stage.is-stacked .draggable[data-id="frame-22"] {
+  pointer-events: auto;
+}
+
 #stage .entering {
   opacity: 0;
   transform: translateY(48px) scale(0.92);

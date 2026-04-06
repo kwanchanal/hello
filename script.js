@@ -134,35 +134,8 @@ const syncFrame22Label = () => {
 };
 
 if (frame22El) {
-  frame22Label = document.createElement('div');
-  frame22Label.className = 'frame-22-label entering';
   frame22El.style.cursor = 'pointer';
-  frame22El.setAttribute('title', 'Open wemint.link');
-  frame22El.addEventListener('click', () => {
-    window.location.href = 'https://wemint.link/';
-  });
-
-  const frame22LabelTitle = document.createElement('span');
-  frame22LabelTitle.className = 'frame-22-label-title';
-  frame22LabelTitle.textContent = 'WEMINT.LINK/YOU';
-
-  const frame22LabelSub = document.createElement('span');
-  frame22LabelSub.className = 'frame-22-label-sub';
-  frame22LabelSub.textContent = 'Help you make your own page fast and free';
-
-  frame22Tooltip = document.createElement('span');
-  frame22Tooltip.className = 'frame-22-tooltip entering';
-  frame22Tooltip.textContent = 'Make Your Site Quick';
-
-  frame22Label.appendChild(frame22LabelTitle);
-  frame22Label.appendChild(frame22LabelSub);
-  stage.appendChild(frame22Label);
-  stage.appendChild(frame22Tooltip);
-
-  const frame22Observer = new MutationObserver(syncFrame22Label);
-  frame22Observer.observe(frame22El, { attributes: true, attributeFilter: ['style'] });
-  frame22El.addEventListener('load', syncFrame22Label);
-  window.addEventListener('resize', syncFrame22Label);
+  frame22El.removeAttribute('title');
 }
 
 const folderDesktopPos = { x: 0, y: 0 };

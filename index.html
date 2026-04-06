@@ -529,18 +529,28 @@
         stage.classList.add('is-stacked');
 
         const frontId = 'frame-22'; // 💌 emoji
+        const frontEl = items.find((el) => el.dataset.id === frontId);
+        if (!frontEl) return;
         const orderedItems = items.slice().sort((a, b) => {
           if (a.dataset.id === frontId) return 1;
           if (b.dataset.id === frontId) return -1;
           return 0;
         });
 
-        const buttonRect = button.getBoundingClientRect();
-        const centerX = buttonRect.left + buttonRect.width / 2;
-        const centerY = buttonRect.top + buttonRect.height / 2;
-        const target = toStageCoords(centerX, centerY);
+        const frontLeft = parseFloat(frontEl.style.left);
+        const frontTop = parseFloat(frontEl.style.top);
+        const frontWidth = parseFloat(frontEl.style.width) || frontEl.offsetWidth;
+        const frontHeight = parseFloat(frontEl.style.height) || frontEl.offsetHeight;
+        const target = {
+          x: (Number.isFinite(frontLeft) ? frontLeft : frontEl.offsetLeft) + frontWidth / 2,
+          y: (Number.isFinite(frontTop) ? frontTop : frontEl.offsetTop) + frontHeight / 2
+        };
+
+        frontEl.style.transition = 'left 520ms cubic-bezier(.16,.84,.16,1), top 520ms cubic-bezier(.16,.84,.16,1)';
+        frontEl.style.zIndex = String(20 + orderedItems.length + 1);
 
         orderedItems.forEach((el, idx) => {
+          if (el.dataset.id === frontId) return;
           const offset = idx * 6;
           const width = parseFloat(el.style.width) || el.offsetWidth;
           const height = parseFloat(el.style.height) || el.offsetHeight;
@@ -551,7 +561,7 @@
         });
       };
 
-      button.addEventListener('click', () => {
+      const toggleEmojiStack = () => {
         const items = Array.from(stage.querySelectorAll('img.draggable'));
         if (!items.length) return;
 
@@ -575,7 +585,17 @@
           saveLayoutToStorage(previousLayout);
           if (SHOULD_PERSIST) localStorage.removeItem(STACK_KEY);
         }
-      });
+      };
+
+      button.addEventListener('click', toggleEmojiStack);
+
+      const frame22Trigger = stage.querySelector('img.draggable[data-id="frame-22"]');
+      if (frame22Trigger) {
+        frame22Trigger.addEventListener('click', (e) => {
+          e.preventDefault();
+          toggleEmojiStack();
+        });
+      }
     })();
   </script>
 
@@ -609,17 +629,16 @@
 
       setStack(true);
 
-      const bindFolderTrigger = () => {
-        const folder = document.querySelector('.folder-item');
-        if (folder) {
-          folder.addEventListener('click', (e) => {
-            e.preventDefault();
-            goWork();
-          });
-        }
+      const bindWorkTrigger = (selector) => {
+        const trigger = document.querySelector(selector);
+        if (!trigger) return;
+        trigger.addEventListener('click', (e) => {
+          e.preventDefault();
+          goWork();
+        });
       };
 
-      bindFolderTrigger();
+      bindWorkTrigger('.folder-item');
 
       const returnButton = document.querySelector('.dock-home');
       if (returnButton) {
